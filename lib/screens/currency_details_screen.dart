@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shika_app/models/currency_model.dart';
-import 'package:shika_app/providers/user_input_provider.dart';
-import 'package:shika_app/screens/edit_currency_screen.dart';
-import 'package:shika_app/widgets/currency_formatter.dart';
+import 'package:kukuo/models/currency_amount_model.dart';
+import 'package:kukuo/providers/user_input_provider.dart';
+import 'package:kukuo/screens/edit_currency_screen.dart';
+import 'package:kukuo/widgets/currency_formatter.dart';
 
 class CurrencyDetailsScreen extends StatelessWidget {
-  final Currency currency;
+  final CurrencyAmount currency;
   final int index;
 
   const CurrencyDetailsScreen({

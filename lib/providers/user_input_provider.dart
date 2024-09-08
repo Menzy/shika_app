@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:shika_app/models/currency_model.dart';
+import 'package:kukuo/models/currency_amount_model.dart';
 
 class UserInputProvider with ChangeNotifier {
-  List<Currency> _currencies = [];
+  List<CurrencyAmount> _currencies = [];
 
-  List<Currency> get currencies => _currencies;
+  List<CurrencyAmount> get currencies => _currencies;
 
   UserInputProvider() {
     loadCurrencies(); // Ensure currencies are loaded on initialization
@@ -17,12 +17,8 @@ class UserInputProvider with ChangeNotifier {
     final storedCurrencies = prefs.getString('currencies');
     if (storedCurrencies != null) {
       final List<dynamic> jsonList = jsonDecode(storedCurrencies);
-      _currencies = jsonList
-          .map((json) => Currency(
-                code: json['code'],
-                amount: json['amount'],
-              ))
-          .toList();
+      _currencies =
+          jsonList.map((json) => CurrencyAmount.fromJson(json)).toList();
       print('Currencies loaded: $_currencies'); // Debug print
       notifyListeners();
     } else {
@@ -30,13 +26,19 @@ class UserInputProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addCurrency(Currency currency) async {
-    _currencies.add(currency);
+  // Future<void> addCurrency(CurrencyAmount currency) async {
+  //   _currencies.add(currency);
+  //   await _saveCurrencies();
+  //   print('Currency added: $currency'); // Debug print
+  // }
+
+  Future<void> addCurrency(CurrencyAmount currency) async {
+    _currencies.insert(0, currency); // Insert at the beginning
     await _saveCurrencies();
     print('Currency added: $currency'); // Debug print
   }
 
-  Future<void> updateCurrency(int index, Currency currency) async {
+  Future<void> updateCurrency(int index, CurrencyAmount currency) async {
     _currencies[index] = currency;
     await _saveCurrencies();
     print('Currency updated: $currency'); // Debug print
@@ -65,7 +67,7 @@ class UserInputProvider with ChangeNotifier {
       String localCurrencyCode, Map<String, double> exchangeRates) {
     double total = 0.0;
 
-    for (Currency currency in _currencies) {
+    for (CurrencyAmount currency in _currencies) {
       final rate = exchangeRates[currency.code];
       if (rate != null) {
         total += currency.amount / rate * exchangeRates[localCurrencyCode]!;
@@ -73,5 +75,16 @@ class UserInputProvider with ChangeNotifier {
     }
 
     return total;
+  }
+
+  // Method to get top number of currencies
+  List<CurrencyAmount> getTopCurrencies(int number) {
+    if (_currencies.isEmpty) {
+      return [];
+    }
+
+    // Ensure the list is not empty
+    final topCurrencies = _currencies.take(number).toList();
+    return topCurrencies;
   }
 }

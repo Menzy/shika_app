@@ -1,4 +1,4 @@
-package com.example.shika_app
+package com.example.kukuo
 
 import io.flutter.embedding.android.FlutterActivity
 

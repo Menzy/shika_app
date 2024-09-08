@@ -1,9 +1,9 @@
 // import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
 // import 'package:provider/provider.dart';
-// import 'package:shika_app/screens/currency_screen.dart';
-// import 'package:shika_app/models/currency_model.dart';
-// import 'package:shika_app/providers/user_input_provider.dart';
+// import 'package:kukuo/screens/currency_screen.dart';
+// import 'package:kukuo/models/currency_model.dart';
+// import 'package:kukuo/providers/user_input_provider.dart';
 // import 'package:math_expressions/math_expressions.dart'; // For evaluating mathematical expressions
 
 // class CurrencyInputModal extends StatefulWidget {

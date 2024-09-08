@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:expressions/expressions.dart' as expressions;
+import 'package:kukuo/utils/constants/colors.dart';
 
 class CustomKeyboard extends StatefulWidget {
   final TextEditingController inputController;
@@ -12,7 +13,7 @@ class CustomKeyboard extends StatefulWidget {
   });
 
   @override
-  _CustomKeyboardState createState() => _CustomKeyboardState();
+  State<CustomKeyboard> createState() => _CustomKeyboardState();
 }
 
 class _CustomKeyboardState extends State<CustomKeyboard> {
@@ -23,7 +24,6 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
   void initState() {
     super.initState();
     _expression = widget.inputController.text;
-    _updateShowEquals();
   }
 
   void _onKeyTap(String key) {
@@ -38,7 +38,6 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
         }
       }
       widget.inputController.text = _expression;
-      _updateShowEquals();
     });
   }
 
@@ -51,7 +50,6 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
         }
         widget.inputController.text = _expression;
       }
-      _updateShowEquals();
     });
   }
 
@@ -104,46 +102,34 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
     }
   }
 
-  void _updateShowEquals() {
-    // Update _showEquals based on the presence of math symbols in the expression
-    _showEquals = _containsMathSymbol(_expression);
-  }
-
-  bool _containsMathSymbol(String input) {
-    return input.contains(RegExp(r'[+\-*/]'));
-  }
-
   @override
   Widget build(BuildContext context) {
     return FractionallySizedBox(
-      child: Container(
-        padding: const EdgeInsets.all(8.0),
-        child: GridView.count(
-          crossAxisCount: 4,
-          children: [
-            _buildKey('C', _onReset, textColor: Colors.green),
-            _buildKey('÷', () => _onKeyTap('/'), textColor: Colors.green),
-            _buildKey('×', () => _onKeyTap('*'), textColor: Colors.green),
-            _buildIconKey(Icons.backspace, _onClear, color: Colors.green),
-            _buildKey('7', () => _onKeyTap('7')),
-            _buildKey('8', () => _onKeyTap('8')),
-            _buildKey('9', () => _onKeyTap('9')),
-            _buildKey('-', () => _onKeyTap('-'), textColor: Colors.green),
-            _buildKey('4', () => _onKeyTap('4')),
-            _buildKey('5', () => _onKeyTap('5')),
-            _buildKey('6', () => _onKeyTap('6')),
-            _buildKey('+', () => _onKeyTap('+'), textColor: Colors.green),
-            _buildKey('1', () => _onKeyTap('1')),
-            _buildKey('2', () => _onKeyTap('2')),
-            _buildKey('3', () => _onKeyTap('3')),
-            _buildKey(_showEquals ? '=' : '>', _onSubmit,
-                textColor: Colors.white,
-                backgroundColor: _showEquals ? Colors.green : Colors.blue),
-            _buildKey('0', () => _onKeyTap('0')),
-            _buildKey('000', () => _onKeyTap('000')),
-            _buildKey('.', () => _onKeyTap('.')),
-          ],
-        ),
+      child: GridView.count(
+        crossAxisCount: 4,
+        children: [
+          _buildSymbol('C', _onReset),
+          _buildSymbol('÷', () => _onKeyTap('/')),
+          _buildSymbol('×', () => _onKeyTap('*')),
+          _buildIconKey(Icons.backspace, _onClear,
+              color: TColors.primaryBGColor),
+          _buildKey('7', () => _onKeyTap('7')),
+          _buildKey('8', () => _onKeyTap('8')),
+          _buildKey('9', () => _onKeyTap('9')),
+          _buildSymbol('-', () => _onKeyTap('-')),
+          _buildKey('4', () => _onKeyTap('4')),
+          _buildKey('5', () => _onKeyTap('5')),
+          _buildKey('6', () => _onKeyTap('6')),
+          _buildSymbol('+', () => _onKeyTap('+')),
+          _buildKey('1', () => _onKeyTap('1')),
+          _buildKey('2', () => _onKeyTap('2')),
+          _buildKey('3', () => _onKeyTap('3')),
+          _buildSymbol('=', () => _onSubmit()),
+          _buildKey('0', () => _onKeyTap('0')),
+          _buildKey('0', () => _onKeyTap('00')),
+          _buildKey('000', () => _onKeyTap('000')),
+          _buildKey('.', () => _onKeyTap('.')),
+        ],
       ),
     );
   }
@@ -156,15 +142,36 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
         margin: const EdgeInsets.all(4.0),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: backgroundColor ?? Colors.grey[200],
+          color: backgroundColor ?? const Color(0xFF00312F),
           borderRadius: BorderRadius.circular(8.0),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 24,
-            color: textColor ?? Colors.black,
+            color: textColor ?? const Color(0xFF008F8A),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSymbol(String symbol, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.all(4.0),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFF008F8A),
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        child: Text(
+          symbol,
+          style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF001817)),
         ),
       ),
     );
@@ -177,7 +184,7 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
         margin: const EdgeInsets.all(4.0),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.grey[200],
+          color: const Color(0xFF008F8A),
           borderRadius: BorderRadius.circular(8.0),
         ),
         child: Icon(

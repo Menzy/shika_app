@@ -1,4 +1,4 @@
-# shika_app
+# kukuo
 
 A new Flutter project.
 

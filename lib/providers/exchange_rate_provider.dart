@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:shika_app/services/api_service.dart';
+import 'package:kukuo/services/api_service.dart';
 import 'dart:convert';
 
 class ExchangeRateProvider with ChangeNotifier {

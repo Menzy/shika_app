@@ -1,29 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:shika_app/models/currency_list.dart';
+import 'package:kukuo/common/top_section_container.dart';
+import 'package:kukuo/models/currency_model.dart';
 
 class CurrencyScreen extends StatefulWidget {
+  const CurrencyScreen({super.key});
+
   @override
-  _CurrencyScreenState createState() => _CurrencyScreenState();
+  State<CurrencyScreen> createState() => _CurrencyScreenState();
 }
 
 class _CurrencyScreenState extends State<CurrencyScreen> {
   TextEditingController _searchController = TextEditingController();
-  List<Currency> _filteredCurrencies = currencies;
-  int? _selectedIndex;
-  bool _isSearching = false;
+  List<Currency> _filteredCurrencies = localCurrencyList;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() {
-      _filterCurrencies();
-    });
+    _searchController.addListener(_filterCurrencies);
   }
 
   void _filterCurrencies() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredCurrencies = currencies.where((currency) {
+      _filteredCurrencies = localCurrencyList.where((currency) {
         final nameLower = currency.name.toLowerCase();
         final codeLower = currency.code.toLowerCase();
         return nameLower.contains(query) || codeLower.contains(query);
@@ -31,62 +30,63 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
     });
   }
 
-  void _onCurrencySelected(int index) {
-    Navigator.pop(context, _filteredCurrencies[index].code);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: _isSearching
-            ? AnimatedContainer(
-                duration: Duration(milliseconds: 300),
-                width:
-                    _isSearching ? MediaQuery.of(context).size.width - 80 : 0,
-                child: TextField(
-                  controller: _searchController,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: 'Search...',
-                    border: InputBorder.none,
-                  ),
-                ),
-              )
-            : Text('Currencies'),
-        actions: [
-          IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) {
-                  _searchController.clear();
-                  _filteredCurrencies = currencies;
-                }
-              });
-            },
+      body: TTopSectionContainer(
+        title: Container(
+          height: 50,
+          padding: const EdgeInsets.only(left: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey),
           ),
-        ],
-      ),
-      body: ListView.separated(
-        itemCount: _filteredCurrencies.length,
-        separatorBuilder: (context, index) => Divider(),
-        itemBuilder: (context, index) {
-          final currency = _filteredCurrencies[index];
-          final isSelected = _selectedIndex == index;
-          return ListTile(
-            leading: Text(
-              currency.flagEmoji,
-              style: const TextStyle(fontSize: 24), // Adjust size as needed
+          child: Row(
+            children: [
+              const Icon(Icons.search, color: Colors.grey),
+              Expanded(
+                  child: TextField(
+                controller: _searchController,
+                onChanged: (value) => _filterCurrencies(),
+              )),
+            ],
+          ),
+        ),
+        child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF00312F),
+              borderRadius: BorderRadius.all(Radius.circular(16)),
             ),
-            title: Text(currency.name),
-            subtitle: Text(currency.code),
-            trailing:
-                isSelected ? Icon(Icons.check, color: Colors.green) : null,
-            onTap: () => _onCurrencySelected(index),
-          );
-        },
+            child: ListView.builder(
+              itemCount: _filteredCurrencies.length,
+              itemBuilder: (context, index) {
+                return Container(
+                  margin: const EdgeInsets.only(
+                      bottom: 10), // Adds space below each tile
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF001817),
+
+                    borderRadius: BorderRadius.circular(
+                        10), // Rounds the corners of the tile
+                  ),
+                  child: ListTile(
+                    leading: Text(
+                      _filteredCurrencies[index].flag,
+                      style: const TextStyle(fontSize: 29),
+                    ),
+                    title: Text(
+                      _filteredCurrencies[index].code,
+                      style: const TextStyle(
+                          color: Color(0xFFFAFFB5), fontSize: 20),
+                    ),
+                    onTap: () =>
+                        Navigator.pop(context, _filteredCurrencies[index].code),
+                  ),
+                );
+              },
+            )),
       ),
     );
   }

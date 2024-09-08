@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
-import 'package:shika_app/providers/exchange_rate_provider.dart';
-import 'package:shika_app/providers/user_input_provider.dart';
-import 'package:shika_app/screens/currency_input_screen.dart';
-import 'package:shika_app/screens/currency_screen.dart';
-import 'package:shika_app/widgets/total_amount_display.dart';
-import 'package:shika_app/widgets/currency_list.dart';
+import 'package:kukuo/common/section_heading.dart';
+import 'package:kukuo/common/top_section_container.dart';
+import 'package:kukuo/models/balance_data.dart';
+import 'package:kukuo/providers/exchange_rate_provider.dart';
+import 'package:kukuo/providers/user_input_provider.dart';
+import 'package:kukuo/screens/all_assets_screen.dart';
+import 'package:kukuo/screens/currency_screen.dart';
+import 'package:kukuo/widgets/balance_chart_data.dart';
+import 'package:kukuo/widgets/total_balance.dart';
+import 'package:kukuo/widgets/added_list.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,11 +36,15 @@ class _HomeScreenState extends State<HomeScreen> {
       await Provider.of<UserInputProvider>(context, listen: false)
           .loadCurrencies();
     } catch (e) {
-      print('Error fetching data: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching data: $e')),
+      );
     } finally {
-      setState(() {
-        _loadingRates = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadingRates = false;
+        });
+      }
     }
   }
 
@@ -57,46 +66,96 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+      body: TTopSectionContainer(
+        title: // Total amount display
+            TotalBalance(
+          selectedLocalCurrency: _selectedLocalCurrency,
+          userInputProvider: userInputProvider,
+          exchangeRateProvider: exchangeRateProvider,
+          onTap: _selectLocalCurrency,
+        ),
+        child: SingleChildScrollView(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Total amount display
-              TotalAmountDisplay(
-                selectedLocalCurrency: _selectedLocalCurrency,
-                userInputProvider: userInputProvider,
-                exchangeRateProvider: exchangeRateProvider,
-                onTap: _selectLocalCurrency,
-              ),
-              const SizedBox(height: 20),
-              // List of tiles
+              // Welcome message for first-time users 
               if (userInputProvider.currencies.isEmpty)
-                const Center(child: Text('No currencies or money saved.')),
+                const Center(
+                    child: Text(
+                  'Welcome, lets make our First entry shall we!',
+                  style: TextStyle(
+                    color: Color.fromARGB(32, 216, 254, 0),
+                    fontSize: 34,
+                  ),
+                )),
+
+              // Currency list showing only top 4 currencies
               if (userInputProvider.currencies.isNotEmpty)
-                Expanded(
-                  child: CurrencyList(
-                    currencies: userInputProvider.currencies,
-                    selectedLocalCurrency: _selectedLocalCurrency,
-                    exchangeRateProvider: exchangeRateProvider,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF00312F),
+                      borderRadius: BorderRadius.all(Radius.circular(16)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TSectionHeading(
+                          title: 'My Assets',
+                          showActionButton: true,
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AllAssetsScreen()));
+                          },
+                        ),
+                        AddedList(
+                          currencies: userInputProvider.getTopCurrencies(4),
+                          selectedLocalCurrency: _selectedLocalCurrency,
+                          exchangeRateProvider: exchangeRateProvider,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+              const SizedBox(height: 25),
+              Container(
+                height: 350,
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF00312F),
+                  borderRadius: BorderRadius.all(Radius.circular(16)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const TSectionHeading(
+                        title: 'Growth %',
+                        showActionButton: true,
+                        buttonTitle: '28D'),
+                    const Row(
+                      children: [
+                        Text('+20%',
+                            style: TextStyle(
+                                fontSize: 25, color: Color(0xFFFAFFB5))),
+                        Icon(
+                          Iconsax.arrow_up,
+                          color: Color(0xFFD8FE00),
+                        )
+                      ],
+                    ),
+                    SizedBox(height: 200, child: BalanceChart(data: data)),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CurrencyInputScreen(),
-            ),
-          );
-        },
-        backgroundColor: Colors.amber,
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -105,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final selectedCurrency = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CurrencyScreen(),
+        builder: (context) => const CurrencyScreen(),
       ),
     );
 

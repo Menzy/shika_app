@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:shika_app/currency_input_formatter.dart';
-import 'package:shika_app/models/currency_model.dart';
-import 'package:shika_app/providers/user_input_provider.dart';
-import 'package:shika_app/screens/currency_screen.dart';
-import 'package:shika_app/widgets/currency_formatter.dart';
+import 'package:kukuo/currency_input_formatter.dart';
+import 'package:kukuo/models/currency_amount_model.dart';
+import 'package:kukuo/models/currency_model.dart';
+import 'package:kukuo/providers/user_input_provider.dart';
+import 'package:kukuo/screens/currency_screen.dart';
+import 'package:kukuo/widgets/currency_formatter.dart';
 
 class EditCurrencyScreen extends StatefulWidget {
-  final Currency currency;
+  final CurrencyAmount currency; // Ensure currency includes name and flag
   final int index;
 
   const EditCurrencyScreen({
@@ -29,8 +30,7 @@ class _EditCurrencyScreenState extends State<EditCurrencyScreen> {
   void initState() {
     super.initState();
     _amountController = TextEditingController(
-      text: widget.currency.amount
-          .toStringAsCurrency(), // Using currency formatter
+      text: widget.currency.amount.toStringAsCurrency(),
     );
     _selectedCurrency = widget.currency.code;
   }
@@ -45,7 +45,7 @@ class _EditCurrencyScreenState extends State<EditCurrencyScreen> {
     final selectedCurrency = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CurrencyScreen(),
+        builder: (context) => const CurrencyScreen(),
       ),
     );
 
@@ -57,13 +57,24 @@ class _EditCurrencyScreenState extends State<EditCurrencyScreen> {
   }
 
   void _updateCurrency() {
-    // Remove formatting and parse the raw number
     final numericString =
         _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
     final double? amount = double.tryParse(numericString);
 
     if (amount != null && amount > 0) {
-      final updatedCurrency = Currency(code: _selectedCurrency, amount: amount);
+      // Fetch corresponding Currency (with flag and name) for selected currency code
+      final currency = localCurrencyList.firstWhere(
+        (c) => c.code == _selectedCurrency,
+        orElse: () => Currency(code: _selectedCurrency, name: 'Unknown', flag: '🏳️'),
+      );
+
+      final updatedCurrency = CurrencyAmount(
+        code: _selectedCurrency,
+        name: currency.name,  // Assign correct name
+        flag: currency.flag,  // Assign correct flag
+        amount: amount,
+      );
+
       Provider.of<UserInputProvider>(context, listen: false)
           .updateCurrency(widget.index, updatedCurrency);
       Navigator.pop(context);
@@ -100,8 +111,8 @@ class _EditCurrencyScreenState extends State<EditCurrencyScreen> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'Amount'),
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly, // Allows only digits
-                CurrencyInputFormatter(), // Apply your custom formatter
+                FilteringTextInputFormatter.digitsOnly,
+                CurrencyInputFormatter(),
               ],
             ),
             const SizedBox(height: 20),
