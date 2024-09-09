@@ -17,71 +17,47 @@ class CustomKeyboard extends StatefulWidget {
 }
 
 class _CustomKeyboardState extends State<CustomKeyboard> {
-  String _expression = '';
-  bool _showEquals = false;
-
   @override
   void initState() {
     super.initState();
-    _expression = widget.inputController.text;
+    widget.inputController.text = widget.inputController.text;
   }
 
   void _onKeyTap(String key) {
     setState(() {
-      if (_expression == '0') {
-        _expression = key; // Replace 0 with the key
+      if (widget.inputController.text == '0') {
+        widget.inputController.text = key;
       } else {
-        if (!_showEquals) {
-          _expression += key;
-        } else {
-          _expression = widget.inputController.text + key;
-        }
+        widget.inputController.text += key;
       }
-      widget.inputController.text = _expression;
     });
   }
 
   void _onClear() {
     setState(() {
-      if (_expression.isNotEmpty) {
-        _expression = _expression.substring(0, _expression.length - 1);
-        if (_expression.isEmpty) {
-          _expression = '0'; // Set to 0 if empty
+      if (widget.inputController.text.isNotEmpty) {
+        widget.inputController.text = widget.inputController.text
+            .substring(0, widget.inputController.text.length - 1);
+        if (widget.inputController.text.isEmpty) {
+          widget.inputController.text = '0';
         }
-        widget.inputController.text = _expression;
       }
     });
   }
 
   void _onReset() {
     setState(() {
-      _expression = '0';
       widget.inputController.text = '0';
-      _showEquals = false;
     });
   }
 
-  void _onSubmit() {
-    if (_showEquals) {
-      try {
-        final result = _evaluateExpression(_expression);
-        widget.inputController.text = result.toString();
-        _expression = result.toString(); // Update expression with result
-
-        // Always reset to ">" after evaluation
-        setState(() {
-          _showEquals = false;
-        });
-      } catch (e) {
-        print('Error evaluating expression: $e');
-        widget.inputController.text = 'Error';
-        _expression = '0';
-        setState(() {
-          _showEquals = false;
-        });
-      }
-    } else {
-      widget.onSubmit();
+  void _onEquals() {
+    try {
+      final result = _evaluateExpression(widget.inputController.text);
+      widget.inputController.text = result.toString(); // Display the result
+    } catch (e) {
+      // print('Error evaluating expression: $e');
+      widget.inputController.text = 'Error';
     }
   }
 
@@ -97,7 +73,7 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
         throw Exception('Invalid result type');
       }
     } catch (e) {
-      print('Error in expression parsing or evaluation: $e');
+      // print('Error in expression parsing or evaluation: $e');
       throw Exception('Invalid expression');
     }
   }
@@ -107,26 +83,29 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
     return FractionallySizedBox(
       child: GridView.count(
         crossAxisCount: 4,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
         children: [
           _buildSymbol('C', _onReset),
-          _buildSymbol('÷', () => _onKeyTap('/')),
-          _buildSymbol('×', () => _onKeyTap('*')),
+          _buildSymbol('-', () => _onKeyTap('-')),
+          _buildSymbol('+', () => _onKeyTap('+')),
           _buildIconKey(Icons.backspace, _onClear,
               color: TColors.primaryBGColor),
           _buildKey('7', () => _onKeyTap('7')),
           _buildKey('8', () => _onKeyTap('8')),
           _buildKey('9', () => _onKeyTap('9')),
-          _buildSymbol('-', () => _onKeyTap('-')),
+          _buildSymbol('×', () => _onKeyTap('*')),
           _buildKey('4', () => _onKeyTap('4')),
           _buildKey('5', () => _onKeyTap('5')),
           _buildKey('6', () => _onKeyTap('6')),
-          _buildSymbol('+', () => _onKeyTap('+')),
+          _buildSymbol('÷', () => _onKeyTap('/')),
           _buildKey('1', () => _onKeyTap('1')),
           _buildKey('2', () => _onKeyTap('2')),
           _buildKey('3', () => _onKeyTap('3')),
-          _buildSymbol('=', () => _onSubmit()),
+          _buildSymbol('=', _onEquals),
           _buildKey('0', () => _onKeyTap('0')),
-          _buildKey('0', () => _onKeyTap('00')),
+          _buildKey('00', () => _onKeyTap('00')),
           _buildKey('000', () => _onKeyTap('000')),
           _buildKey('.', () => _onKeyTap('.')),
         ],
@@ -148,7 +127,8 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 24,
+            fontWeight: FontWeight.w500,
+            fontSize: 30,
             color: textColor ?? const Color(0xFF008F8A),
           ),
         ),
@@ -169,7 +149,7 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
         child: Text(
           symbol,
           style: const TextStyle(
-              fontSize: 24,
+              fontSize: 30,
               fontWeight: FontWeight.bold,
               color: Color(0xFF001817)),
         ),
