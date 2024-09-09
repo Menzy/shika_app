@@ -30,30 +30,29 @@ class _AllAssetsScreenState extends State<AllAssetsScreen> {
             color: Color(0xFFD8FE00),
           ),
         ),
-        child: Container(
-          // color: const Color(0xFF00312F),
-          padding: const EdgeInsets.all(10),
-          decoration: const BoxDecoration(
-            color: Color(0xFF00312F),
-            borderRadius: BorderRadius.all(Radius.circular(16)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const TSectionHeading(
-                title: 'All Assets',
-                showActionButton: false,
-              ),
-              const SizedBox(height: 30),
-              Expanded(
-                child: AddedList(
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF00312F),
+              borderRadius: BorderRadius.all(Radius.circular(16)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const TSectionHeading(
+                  title: 'All Assets',
+                  showActionButton: false,
+                ),
+                const SizedBox(height: 30),
+                AddedList(
                   currencies: userInputProvider.currencies,
                   selectedLocalCurrency: '',
                   exchangeRateProvider:
                       Provider.of<ExchangeRateProvider>(context),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
