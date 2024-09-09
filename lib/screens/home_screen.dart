@@ -6,14 +6,16 @@ import 'package:kukuo/common/top_section_container.dart';
 import 'package:kukuo/models/balance_data.dart';
 import 'package:kukuo/providers/exchange_rate_provider.dart';
 import 'package:kukuo/providers/user_input_provider.dart';
-import 'package:kukuo/screens/all_assets_screen.dart';
 import 'package:kukuo/screens/currency_screen.dart';
 import 'package:kukuo/widgets/balance_chart_data.dart';
 import 'package:kukuo/widgets/total_balance.dart';
 import 'package:kukuo/widgets/added_list.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback
+      onSeeAllPressed; // Callback to handle the "See All" button press
+
+  const HomeScreen({super.key, required this.onSeeAllPressed});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -79,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome message for first-time users 
+              // Welcome message for first-time users
               if (userInputProvider.currencies.isEmpty)
                 const Center(
                     child: Text(
@@ -106,14 +108,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         TSectionHeading(
                           title: 'My Assets',
                           showActionButton: true,
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        const AllAssetsScreen()));
-                          },
+                          onPressed: widget.onSeeAllPressed,
                         ),
+                        const SizedBox(height: 15),
                         AddedList(
                           currencies: userInputProvider.getTopCurrencies(4),
                           selectedLocalCurrency: _selectedLocalCurrency,

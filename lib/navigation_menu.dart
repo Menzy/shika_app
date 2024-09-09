@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kukuo/screens/add_coins_screen.dart.dart';
-import 'package:kukuo/screens/all_assets_screen.dart';
 import 'package:kukuo/screens/home_screen.dart';
+import 'package:kukuo/screens/all_assets_screen.dart';
 import 'package:kukuo/screens/papertrail_screen.dart';
 
 class NavigationMenu extends StatefulWidget {
@@ -14,41 +14,73 @@ class NavigationMenu extends StatefulWidget {
 
 class _NavigationMenuState extends State<NavigationMenu> {
   int _selectedIndex = 0;
+  bool _isAdding = false; // State variable to manage add/check icon state
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const AllAssetsScreen(),
-    const PaperTrailScreen(),
-  ];
+  // GlobalKey to access AddCoinsScreenState
+  final GlobalKey<AddCoinsScreenState> _addCoinsScreenKey =
+      GlobalKey<AddCoinsScreenState>();
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      _isAdding = (index == 3); // Only enable adding state if on AddCoinsScreen
     });
+  }
+
+  // List of screens for bottom navigation
+  late final List<Widget> _screens = [
+    HomeScreen(
+      onSeeAllPressed: () => _onItemTapped(1), // Go to AllAssetsScreen
+    ),
+    const AllAssetsScreen(),
+    const PaperTrailScreen(),
+    AddCoinsScreen(
+      key: _addCoinsScreenKey, // Assign the GlobalKey to AddCoinsScreen
+      onSubmitSuccess: () => _onItemTapped(0), // Go back to the HomeScreen
+    ),
+  ];
+
+  void _onAddPressed() {
+    if (_selectedIndex == 3 && _isAdding) {
+      // Call the submit function via GlobalKey
+      _addCoinsScreenKey.currentState?.submitInput();
+      setState(() {
+        _isAdding = false; // Change back to add icon after submission
+      });
+    } else {
+      setState(() {
+        _selectedIndex = 3; // Go to AddCoinsScreen
+        _isAdding = true; // Change to check icon
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    double pillWidth = MediaQuery.of(context).size.width *
-        0.43; // Set pill width as 43% of screen width
+    double pillWidth = MediaQuery.of(context).size.width * 0.43;
+    const double buttonSize = 50; // Match the height of the pill container
 
     return Scaffold(
       body: Stack(
         children: [
-          _screens[_selectedIndex], // Show the current screen based on index
-
-          // Pill-shaped bottom navbar
+          IndexedStack(
+            index: _selectedIndex,
+            children: _screens,
+          ),
           Positioned(
-            bottom:
-                30, // Position the navbar 30px above the bottom of the screen
-            left: (MediaQuery.of(context).size.width - pillWidth) /
-                2, // Center the pill dynamically
+            bottom: 30,
+            left: (MediaQuery.of(context).size.width - pillWidth) / 2,
             child: Container(
               width: pillWidth,
-              height: 70,
+              height: buttonSize, // Set height to match the button size
               decoration: BoxDecoration(
                 color: const Color(0xFF000D0C),
-                borderRadius: BorderRadius.circular(35), // Pill shape
+                borderRadius: BorderRadius.circular(35),
                 boxShadow: const [
                   BoxShadow(
                     color: Colors.black12,
@@ -58,8 +90,7 @@ class _NavigationMenuState extends State<NavigationMenu> {
                 ],
               ),
               child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceEvenly, // Evenly space icons
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   IconButton(
                     icon: Icon(Iconsax.home,
@@ -87,30 +118,43 @@ class _NavigationMenuState extends State<NavigationMenu> {
             ),
           ),
 
-          // Floating Action Button positioned to the right of the pill navbar
+          // Custom Icon Button positioned to the right of the pill navbar
           Positioned(
-            bottom:
-                45, // Align vertically with the bottom navbar (adjust as needed)
-            right: (MediaQuery.of(context).size.width - pillWidth) / 2 -
-                55, // Align 10px to the right of the pill
-            child: SizedBox(
-              width: 45, // Set FAB size to 45px
-              height: 45,
-              child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AddCoinsScreen(),
+            bottom: 30, // Align with the bottom of the pill navbar
+            left: (MediaQuery.of(context).size.width - pillWidth) / 2 +
+                pillWidth +
+                11, // Position 11px to the right of the pill
+            child: GestureDetector(
+              onTap: _onAddPressed, // Handle icon tap logic
+              child: Container(
+                width: buttonSize, // Match the button size
+                height: buttonSize, // Match the button size
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD8FE00),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 5,
+                      spreadRadius: 2,
                     ),
-                  );
-                },
-                backgroundColor: const Color(0xFFD8FE00),
-                shape: const CircleBorder(),
-                child: const Icon(
-                  Icons.add,
-                  size: 20, // Set icon size to 20px
-                  color: Color(0xFF00312F),
+                  ],
+                ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 100),
+                  transitionBuilder: (child, animation) {
+                    return ScaleTransition(
+                      scale: animation,
+                      child: child,
+                    );
+                  },
+                  child: Icon(
+                    _isAdding ? Icons.check : Icons.add,
+                    key: ValueKey<bool>(
+                        _isAdding), // Unique key for AnimatedSwitcher
+                    size: 30,
+                    color: const Color(0xFF00312F),
+                  ),
                 ),
               ),
             ),
