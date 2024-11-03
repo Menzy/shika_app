@@ -3,6 +3,7 @@ import 'package:kukuo/common/top_section_container.dart';
 import 'package:provider/provider.dart';
 import 'package:kukuo/models/currency_amount_model.dart';
 import 'package:kukuo/providers/user_input_provider.dart';
+import 'package:kukuo/providers/exchange_rate_provider.dart';
 import 'package:kukuo/screens/edit_currency_screen.dart';
 import 'package:kukuo/widgets/currency_formatter.dart';
 
@@ -20,6 +21,10 @@ class EditBalanceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final userInputProvider =
         Provider.of<UserInputProvider>(context, listen: false);
+    final exchangeRateProvider =
+        Provider.of<ExchangeRateProvider>(context, listen: false);
+
+    final String localCurrencyCode = 'USD'; // Or fetch this from your settings
 
     return Scaffold(
       body: TTopSectionContainer(
@@ -73,7 +78,11 @@ class EditBalanceScreen extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      userInputProvider.removeCurrency(index);
+                      userInputProvider.removeCurrency(
+                        index,
+                        exchangeRateProvider.exchangeRates,
+                        localCurrencyCode,
+                      );
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
@@ -92,4 +101,3 @@ class EditBalanceScreen extends StatelessWidget {
     );
   }
 }
-
