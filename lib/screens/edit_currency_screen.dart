@@ -5,6 +5,7 @@ import 'package:kukuo/currency_input_formatter.dart';
 import 'package:kukuo/models/currency_amount_model.dart';
 import 'package:kukuo/models/currency_model.dart';
 import 'package:kukuo/providers/user_input_provider.dart';
+import 'package:kukuo/providers/exchange_rate_provider.dart';
 import 'package:kukuo/screens/currency_screen.dart';
 import 'package:kukuo/widgets/currency_formatter.dart';
 
@@ -65,18 +66,32 @@ class _EditCurrencyScreenState extends State<EditCurrencyScreen> {
       // Fetch corresponding Currency (with flag and name) for selected currency code
       final currency = localCurrencyList.firstWhere(
         (c) => c.code == _selectedCurrency,
-        orElse: () => Currency(code: _selectedCurrency, name: 'Unknown', flag: '🏳️'),
+        orElse: () =>
+            Currency(code: _selectedCurrency, name: 'Unknown', flag: '🏳️'),
       );
 
       final updatedCurrency = CurrencyAmount(
         code: _selectedCurrency,
-        name: currency.name,  // Assign correct name
-        flag: currency.flag,  // Assign correct flag
+        name: currency.name, // Assign correct name
+        flag: currency.flag, // Assign correct flag
         amount: amount,
       );
 
-      Provider.of<UserInputProvider>(context, listen: false)
-          .updateCurrency(widget.index, updatedCurrency);
+      final userInputProvider =
+          Provider.of<UserInputProvider>(context, listen: false);
+      final exchangeRateProvider =
+          Provider.of<ExchangeRateProvider>(context, listen: false);
+
+      final String localCurrencyCode = 'USD'; // Replace with dynamic value
+
+      // Update the currency with the exchange rates and local currency
+      userInputProvider.updateCurrency(
+        widget.index,
+        updatedCurrency,
+        exchangeRateProvider.exchangeRates,
+        localCurrencyCode,
+      );
+
       Navigator.pop(context);
     }
   }
