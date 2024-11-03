@@ -14,10 +14,10 @@ class AllAssetsScreen extends StatefulWidget {
 }
 
 class _AllAssetsScreenState extends State<AllAssetsScreen> {
+  String _selectedLocalCurrency = 'USD'; // Default currency for conversion
+
   @override
   Widget build(BuildContext context) {
-    final userInputProvider = Provider.of<UserInputProvider>(context);
-
     return Scaffold(
       backgroundColor: const Color(0xFF001817),
       body: TTopSectionContainer(
@@ -30,30 +30,39 @@ class _AllAssetsScreenState extends State<AllAssetsScreen> {
             color: Color(0xFFD8FE00),
           ),
         ),
-        child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
-              color: Color(0xFF00312F),
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const TSectionHeading(
-                  title: 'All Assets',
-                  showActionButton: false,
+        child: Consumer<UserInputProvider>(
+          builder: (context, userInputProvider, child) {
+            final consolidatedCurrencies =
+                userInputProvider.getConsolidatedCurrencies();
+
+            return SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF00312F),
+                  borderRadius: BorderRadius.all(Radius.circular(16)),
                 ),
-                const SizedBox(height: 30),
-                AddedList(
-                  currencies: userInputProvider.currencies,
-                  selectedLocalCurrency: '',
-                  exchangeRateProvider:
-                      Provider.of<ExchangeRateProvider>(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const TSectionHeading(
+                      title: 'All Assets',
+                      showActionButton: false,
+                    ),
+                    const SizedBox(height: 30),
+                    AddedList(
+                      currencies:
+                          consolidatedCurrencies, // Use consolidated currencies
+                      selectedLocalCurrency: _selectedLocalCurrency,
+                      exchangeRateProvider:
+                          Provider.of<ExchangeRateProvider>(context),
+                      isAllAssetsScreen: true, // Add this parameter
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
