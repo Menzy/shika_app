@@ -2,16 +2,45 @@ class Currency {
   final String code;
   final String name;
   final String flag;
+  final String symbol; // Add symbol property
 
   Currency({
     required this.code,
     required this.name,
     required this.flag,
-  });
+    String? symbol, // Make symbol optional
+  }) : symbol = symbol ?? code; // Default to code if no symbol provided
+
+  // Add a static method to get symbol for any currency code
+  static String getSymbolForCode(String code) {
+    return _currencySymbols[code] ?? code;
+  }
 }
 
+// Add currency symbols map
+const Map<String, String> _currencySymbols = {
+  'USD': '\$',
+  'GHS': '₵',
+  'EUR': '€',
+  'GBP': '£',
+  'JPY': '¥',
+  'CNY': '¥',
+  'INR': '₹',
+  'RUB': '₽',
+  'TRY': '₺',
+  'NGN': '₦',
+  'KRW': '₩',
+  'BTC': '₿',
+  'THB': '฿',
+  // Add more currency symbols as needed
+};
+
 final List<Currency> localCurrencyList = [
-  Currency(code: 'AED', name: 'United Arab Emirates Dirham', flag: '🇦🇪'),
+  Currency(
+      code: 'AED',
+      name: 'United Arab Emirates Dirham',
+      flag: '🇦🇪',
+      symbol: 'د.إ'),
   Currency(code: 'AFN', name: 'Afghan Afghani', flag: '🇦🇫'),
   Currency(code: 'ALL', name: 'Albanian Lek', flag: '🇦🇱'),
   Currency(code: 'AMD', name: 'Armenian Dram', flag: '🇦🇲'),
@@ -35,7 +64,7 @@ final List<Currency> localCurrencyList = [
   Currency(code: 'BOB', name: 'Bolivian Boliviano', flag: '🇧🇴'),
   Currency(code: 'BRL', name: 'Brazilian Real', flag: '🇧🇷'),
   Currency(code: 'BSD', name: 'Bahamian Dollar', flag: '🇧🇸'),
-  Currency(code: 'BTC', name: 'Bitcoin', flag: '₿'),
+  Currency(code: 'BTC', name: 'Bitcoin', flag: '₿', symbol: '₿'),
   Currency(code: 'BTN', name: 'Bhutanese Ngultrum', flag: '🇧🇹'),
   Currency(code: 'BWP', name: 'Botswanan Pula', flag: '🇧🇼'),
   Currency(code: 'BYN', name: 'Belarusian Ruble', flag: '🇧🇾'),
@@ -46,7 +75,7 @@ final List<Currency> localCurrencyList = [
   Currency(code: 'CLF', name: 'Chilean Unit of Account (UF)', flag: '🇨🇱'),
   Currency(code: 'CLP', name: 'Chilean Peso', flag: '🇨🇱'),
   Currency(code: 'CNH', name: 'Chinese Yuan Offshore', flag: '🇨🇳'),
-  Currency(code: 'CNY', name: 'Chinese Yuan', flag: '🇨🇳'),
+  Currency(code: 'CNY', name: 'Chinese Yuan', flag: '🇨🇳', symbol: '¥'),
   Currency(code: 'COP', name: 'Colombian Peso', flag: '🇨🇴'),
   Currency(code: 'CRC', name: 'Costa Rican Colón', flag: '🇨🇷'),
   Currency(code: 'CUC', name: 'Cuban Convertible Peso', flag: '🇨🇺'),
@@ -60,13 +89,14 @@ final List<Currency> localCurrencyList = [
   Currency(code: 'EGP', name: 'Egyptian Pound', flag: '🇪🇬'),
   Currency(code: 'ERN', name: 'Eritrean Nakfa', flag: '🇪🇷'),
   Currency(code: 'ETB', name: 'Ethiopian Birr', flag: '🇪🇹'),
-  Currency(code: 'EUR', name: 'Euro', flag: '🇪🇺'),
+  Currency(code: 'EUR', name: 'Euro', flag: '🇪🇺', symbol: '€'),
   Currency(code: 'FJD', name: 'Fijian Dollar', flag: '🇫🇯'),
   Currency(code: 'FKP', name: 'Falkland Islands Pound', flag: '🇫🇰'),
-  Currency(code: 'GBP', name: 'British Pound Sterling', flag: '🇬🇧'),
+  Currency(
+      code: 'GBP', name: 'British Pound Sterling', flag: '🇬🇧', symbol: '£'),
   Currency(code: 'GEL', name: 'Georgian Lari', flag: '🇬🇪'),
   Currency(code: 'GGP', name: 'Guernsey Pound', flag: '🇬🇬'),
-  Currency(code: 'GHS', name: 'Ghanaian Cedi', flag: '🇬🇭'),
+  Currency(code: 'GHS', name: 'Ghanaian Cedi', flag: '🇬🇭', symbol: '₵'),
   Currency(code: 'GIP', name: 'Gibraltar Pound', flag: '🇬🇲'),
   Currency(code: 'GMD', name: 'Gambian Dalasi', flag: '🇬🇲'),
   Currency(code: 'GNF', name: 'Guinean Franc', flag: '🇲🇬'),
@@ -80,20 +110,20 @@ final List<Currency> localCurrencyList = [
   Currency(code: 'IDR', name: 'Indonesian Rupiah', flag: '🇮🇩'),
   Currency(code: 'ILS', name: 'Israeli New Shekel', flag: '🇮🇱'),
   Currency(code: 'IMP', name: 'Isle of Man Pound', flag: '🇮🇲'),
-  Currency(code: 'INR', name: 'Indian Rupee', flag: '🇮🇳'),
+  Currency(code: 'INR', name: 'Indian Rupee', flag: '🇮🇳', symbol: '₹'),
   Currency(code: 'IQD', name: 'Iraqi Dinar', flag: '🇮🇶'),
   Currency(code: 'IRR', name: 'Iranian Rial', flag: '🇮🇷'),
   Currency(code: 'ISK', name: 'Icelandic Króna', flag: '🇮🇸'),
   Currency(code: 'JEP', name: 'Jersey Pound', flag: '🇯🇪'),
   Currency(code: 'JMD', name: 'Jamaican Dollar', flag: '🇯🇲'),
   Currency(code: 'JOD', name: 'Jordanian Dinar', flag: '🇯🇴'),
-  Currency(code: 'JPY', name: 'Japanese Yen', flag: '🇯🇵'),
+  Currency(code: 'JPY', name: 'Japanese Yen', flag: '🇯🇵', symbol: '¥'),
   Currency(code: 'KES', name: 'Kenyan Shilling', flag: '🇰🇪'),
   Currency(code: 'KGS', name: 'Kyrgystani Som', flag: '🇰🇬'),
   Currency(code: 'KHR', name: 'Cambodian Riel', flag: '🇰🇭'),
   Currency(code: 'KMF', name: 'Comorian Franc', flag: '🇰🇲'),
   Currency(code: 'KPW', name: 'North Korean Won', flag: '🇰🇵'),
-  Currency(code: 'KRW', name: 'South Korean Won', flag: '🇰🇷'),
+  Currency(code: 'KRW', name: 'South Korean Won', flag: '🇰🇷', symbol: '₩'),
   Currency(code: 'KWD', name: 'Kuwaiti Dinar', flag: '🇰🇼'),
   Currency(code: 'KYD', name: 'Cayman Islands Dollar', flag: '🇰🇾'),
   Currency(code: 'KZT', name: 'Kazakhstani Tenge', flag: '🇰🇿'),
@@ -118,7 +148,7 @@ final List<Currency> localCurrencyList = [
   Currency(code: 'MYR', name: 'Malaysian Ringgit', flag: '🇲🇾'),
   Currency(code: 'MZN', name: 'Mozambican Metical', flag: '🇲🇿'),
   Currency(code: 'NAD', name: 'Namibian Dollar', flag: '🇳🇦'),
-  Currency(code: 'NGN', name: 'Nigerian Naira', flag: '🇳🇬'),
+  Currency(code: 'NGN', name: 'Nigerian Naira', flag: '🇳🇬', symbol: '₦'),
   Currency(code: 'NIO', name: 'Nicaraguan Córdoba', flag: '🇳🇮'),
   Currency(code: 'NOK', name: 'Norwegian Krone', flag: '🇳🇴'),
   Currency(code: 'NPR', name: 'Nepalese Rupee', flag: '🇳🇵'),
@@ -134,7 +164,7 @@ final List<Currency> localCurrencyList = [
   Currency(code: 'QAR', name: 'Qatari Rial', flag: '🇶🇦'),
   Currency(code: 'RON', name: 'Romanian Leu', flag: '🇷🇴'),
   Currency(code: 'RSD', name: 'Serbian Dinar', flag: '🇷🇸'),
-  Currency(code: 'RUB', name: 'Russian Ruble', flag: '🇷🇺'),
+  Currency(code: 'RUB', name: 'Russian Ruble', flag: '🇷🇺', symbol: '₽'),
   Currency(code: 'RWF', name: 'Rwandan Franc', flag: '🇷🇼'),
   Currency(code: 'SAR', name: 'Saudi Riyal', flag: '🇸🇦'),
   Currency(code: 'SBD', name: 'Solomon Islands Dollar', flag: '🇸🇧'),
@@ -152,18 +182,19 @@ final List<Currency> localCurrencyList = [
   Currency(code: 'SVC', name: 'Salvadoran Colón', flag: '🇸🇻'),
   Currency(code: 'SYP', name: 'Syrian Pound', flag: '🇸🇾'),
   Currency(code: 'SZL', name: 'Swazi Lilangeni', flag: '🇸🇿'),
-  Currency(code: 'THB', name: 'Thai Baht', flag: '🇹🇭'),
+  Currency(code: 'THB', name: 'Thai Baht', flag: '🇹🇭', symbol: '฿'),
   Currency(code: 'TJS', name: 'Tajikistani Somoni', flag: '🇹🇯'),
   Currency(code: 'TMT', name: 'Turkmenistani Manat', flag: '🇹🇲'),
   Currency(code: 'TND', name: 'Tunisian Dinar', flag: '🇹🇳'),
   Currency(code: 'TOP', name: 'Tongan Paʻanga', flag: '🇹🇴'),
-  Currency(code: 'TRY', name: 'Turkish Lira', flag: '🇹🇷'),
+  Currency(code: 'TRY', name: 'Turkish Lira', flag: '🇹🇷', symbol: '₺'),
   Currency(code: 'TTD', name: 'Trinidad and Tobago Dollar', flag: '🇹🇹'),
   Currency(code: 'TWD', name: 'New Taiwan Dollar', flag: '🇹🇼'),
   Currency(code: 'TZS', name: 'Tanzanian Shilling', flag: '🇹🇿'),
   Currency(code: 'UAH', name: 'Ukrainian Hryvnia', flag: '🇺🇦'),
   Currency(code: 'UGX', name: 'Ugandan Shilling', flag: '🇺🇬'),
-  Currency(code: 'USD', name: 'United States Dollar', flag: '🇺🇸'),
+  Currency(
+      code: 'USD', name: 'United States Dollar', flag: '🇺🇸', symbol: '\$'),
   Currency(code: 'UYU', name: 'Uruguayan Peso', flag: '🇺🇾'),
   Currency(code: 'UZS', name: 'Uzbekistani Som', flag: '🇺🇿'),
   Currency(code: 'VES', name: 'Venezuelan Bolívar', flag: '🇻🇪'),
