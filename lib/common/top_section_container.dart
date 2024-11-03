@@ -69,15 +69,18 @@ class TTopSectionContainer extends StatelessWidget {
                 topRight: Radius.circular(30),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TopSectionTitle(
-                  title: title, // Title passed as a widget
-                ),
-                const SizedBox(height: 35), // Spacing before the child content
-                Expanded(child: child),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TopSectionTitle(
+                    title: title, // Title passed as a widget
+                  ),
+                  const SizedBox(
+                      height: 35), // Spacing before the child content
+                  child,
+                ],
+              ),
             ),
           ),
         ),
