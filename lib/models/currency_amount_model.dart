@@ -1,22 +1,3 @@
-// class CurrencyAmount {
-//   final String code;
-//   final double amount;
-
-//   CurrencyAmount({required this.code, required this.amount});
-
-//   // Convert Currency to Map for JSON encoding
-//   Map<String, dynamic> toJson() => {
-//         'code': code,
-//         'amount': amount,
-//       };
-
-//   // Create Currency from Map
-//   factory CurrencyAmount.fromJson(Map<String, dynamic> json) => CurrencyAmount(
-//         code: json['code'],
-//         amount: json['amount'],
-//       );
-// }
-
 import 'package:kukuo/models/currency_model.dart';
 
 class CurrencyAmount {
