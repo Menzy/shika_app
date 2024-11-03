@@ -14,9 +14,8 @@ class NavigationMenu extends StatefulWidget {
 
 class _NavigationMenuState extends State<NavigationMenu> {
   int _selectedIndex = 0;
-  bool _isAdding = false; // State variable to manage add/check icon state
+  bool _isAdding = false;
 
-  // GlobalKey to access AddCoinsScreenState
   final GlobalKey<AddCoinsScreenState> _addCoinsScreenKey =
       GlobalKey<AddCoinsScreenState>();
 
@@ -28,34 +27,32 @@ class _NavigationMenuState extends State<NavigationMenu> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      _isAdding = (index == 3); // Only enable adding state if on AddCoinsScreen
+      _isAdding = (index == 3);
     });
   }
 
-  // List of screens for bottom navigation
   late final List<Widget> _screens = [
     HomeScreen(
-      onSeeAllPressed: () => _onItemTapped(1), // Go to AllAssetsScreen
+      onSeeAllPressed: () => _onItemTapped(1),
     ),
     const AllAssetsScreen(),
     const PaperTrailScreen(),
     AddCoinsScreen(
-      key: _addCoinsScreenKey, // Assign the GlobalKey to AddCoinsScreen
-      onSubmitSuccess: () => _onItemTapped(0), // Go back to the HomeScreen
+      key: _addCoinsScreenKey,
+      onSubmitSuccess: () => _onItemTapped(0),
     ),
   ];
 
   void _onAddPressed() {
     if (_selectedIndex == 3 && _isAdding) {
-      // Call the submit function via GlobalKey
       _addCoinsScreenKey.currentState?.submitInput();
       setState(() {
-        _isAdding = false; // Change back to add icon after submission
+        _isAdding = false;
       });
     } else {
       setState(() {
-        _selectedIndex = 3; // Go to AddCoinsScreen
-        _isAdding = true; // Change to check icon
+        _selectedIndex = 3;
+        _isAdding = true;
       });
     }
   }
@@ -63,7 +60,7 @@ class _NavigationMenuState extends State<NavigationMenu> {
   @override
   Widget build(BuildContext context) {
     double pillWidth = MediaQuery.of(context).size.width * 0.43;
-    const double buttonSize = 50; // Match the height of the pill container
+    const double buttonSize = 50;
 
     return Scaffold(
       body: Stack(
@@ -77,7 +74,7 @@ class _NavigationMenuState extends State<NavigationMenu> {
             left: (MediaQuery.of(context).size.width - pillWidth) / 2,
             child: Container(
               width: pillWidth,
-              height: buttonSize, // Set height to match the button size
+              height: buttonSize,
               decoration: BoxDecoration(
                 color: const Color(0xFF000D0C),
                 borderRadius: BorderRadius.circular(35),
@@ -117,18 +114,16 @@ class _NavigationMenuState extends State<NavigationMenu> {
               ),
             ),
           ),
-
-          // Custom Icon Button positioned to the right of the pill navbar
           Positioned(
-            bottom: 30, // Align with the bottom of the pill navbar
+            bottom: 30,
             left: (MediaQuery.of(context).size.width - pillWidth) / 2 +
                 pillWidth +
-                11, // Position 11px to the right of the pill
+                11,
             child: GestureDetector(
-              onTap: _onAddPressed, // Handle icon tap logic
+              onTap: _onAddPressed,
               child: Container(
-                width: buttonSize, // Match the button size
-                height: buttonSize, // Match the button size
+                width: buttonSize,
+                height: buttonSize,
                 decoration: const BoxDecoration(
                   color: Color(0xFFD8FE00),
                   shape: BoxShape.circle,
@@ -150,8 +145,7 @@ class _NavigationMenuState extends State<NavigationMenu> {
                   },
                   child: Icon(
                     _isAdding ? Icons.check : Icons.add,
-                    key: ValueKey<bool>(
-                        _isAdding), // Unique key for AnimatedSwitcher
+                    key: ValueKey<bool>(_isAdding),
                     size: 30,
                     color: const Color(0xFF00312F),
                   ),
