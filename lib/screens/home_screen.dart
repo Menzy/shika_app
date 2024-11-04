@@ -20,11 +20,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _selectedLocalCurrency = 'USD'; // Default local currency
+  String _selectedLocalCurrency = 'USD';
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
     final exchangeRateProvider =
         Provider.of<ExchangeRateProvider>(context, listen: false);
     final userInputProvider =
@@ -32,8 +38,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
     exchangeRateProvider.setUserInputProvider(userInputProvider);
     userInputProvider.setExchangeRateProvider(exchangeRateProvider);
-    userInputProvider.loadTransactions();
-    _loadInitialData();
+
+    try {
+      await Future.wait([
+        userInputProvider.loadTransactions(),
+        _loadInitialData(),
+      ]);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -66,97 +81,119 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Extracted welcome message widget
+  Widget _buildWelcomeMessage() {
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Text(
+          'Welcome ${auth.username ?? 'User'}, let\'s make our first entry, shall we!',
+          style: const TextStyle(
+            color: Color.fromARGB(32, 216, 254, 0),
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  // Extracted assets section widget
+  Widget _buildAssetsSection(UserInputProvider userInputProvider) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF00312F),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TSectionHeading(
+            title: 'My Assets',
+            showActionButton: true,
+            onPressed: widget.onSeeAllPressed,
+          ),
+          const SizedBox(height: 15),
+          AddedList(
+            currencies:
+                userInputProvider.getConsolidatedCurrencies().take(4).toList(),
+            selectedLocalCurrency: _selectedLocalCurrency,
+            exchangeRateProvider: Provider.of<ExchangeRateProvider>(context),
+            isAllAssetsScreen: false,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error: $_error'),
+              ElevatedButton(
+                onPressed: _initializeData,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: TTopSectionContainer(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Consumer<UserInputProvider>(
-              builder: (context, userInputProvider, child) {
-                return TotalBalance(
-                  selectedLocalCurrency: _selectedLocalCurrency,
-                  userInputProvider: userInputProvider,
-                  exchangeRateProvider:
-                      Provider.of<ExchangeRateProvider>(context),
-                  onTap: _selectLocalCurrency,
-                );
-              },
+              builder: (context, userInputProvider, _) => TotalBalance(
+                selectedLocalCurrency: _selectedLocalCurrency,
+                userInputProvider: userInputProvider,
+                exchangeRateProvider:
+                    Provider.of<ExchangeRateProvider>(context),
+                onTap: _selectLocalCurrency,
+              ),
             ),
             IconButton(
-              icon: const Icon(
-                Icons.exit_to_app,
-                color: Colors.white,
-              ),
-              onPressed: () {
-                context.read<AuthProvider>().signOut(context);
-              },
+              icon: const Icon(Icons.exit_to_app, color: Colors.white),
+              onPressed: () => context.read<AuthProvider>().signOut(context),
             ),
           ],
         ),
         child: SingleChildScrollView(
+          // padding: const EdgeInsets.symmetric(vertical: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Consumer<UserInputProvider>(
-                builder: (context, userInputProvider, child) {
+                builder: (context, userInputProvider, _) {
                   return userInputProvider.currencies.isEmpty
-                      ? Center(
-                          child: Consumer<AuthProvider>(
-                          builder: (context, auth, _) => Text(
-                            'Welcome ${auth.username ?? 'User'}, let\'s make our first entry, shall we!',
-                            style: const TextStyle(
-                              color: Color.fromARGB(32, 216, 254, 0),
-                              fontSize: 34,
-                            ),
-                          ),
-                        ))
-                      : Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF00312F),
-                            borderRadius: BorderRadius.all(Radius.circular(16)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              TSectionHeading(
-                                title: 'My Assets',
-                                showActionButton: true,
-                                onPressed: widget.onSeeAllPressed,
-                              ),
-                              const SizedBox(height: 15),
-                              AddedList(
-                                currencies: userInputProvider
-                                    .getConsolidatedCurrencies()
-                                    .take(4) // Only take first 4 items
-                                    .toList(),
-                                selectedLocalCurrency: _selectedLocalCurrency,
-                                exchangeRateProvider:
-                                    Provider.of<ExchangeRateProvider>(context),
-                                isAllAssetsScreen:
-                                    false, // Default value, can be omitted
-                              )
-                            ],
-                          ),
-                        );
+                      ? _buildWelcomeMessage()
+                      : _buildAssetsSection(userInputProvider);
                 },
               ),
               const SizedBox(height: 25),
-
-              // Growth Chart Section
               Consumer<UserInputProvider>(
-                builder: (context, userInputProvider, child) {
-                  // Only show the graph if currencies exist
-                  if (userInputProvider.currencies.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
-                  return GrowthChart(
-                    selectedLocalCurrency:
-                        _selectedLocalCurrency, // Add this parameter
-                  );
+                builder: (context, userInputProvider, _) {
+                  return userInputProvider.currencies.isEmpty
+                      ? const SizedBox.shrink()
+                      : GrowthChart(
+                          selectedLocalCurrency: _selectedLocalCurrency,
+                        );
                 },
               ),
             ],
