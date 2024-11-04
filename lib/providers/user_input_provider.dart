@@ -6,6 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:kukuo/models/currency_amount_model.dart';
 import 'package:kukuo/models/transaction_model.dart';
+import 'package:kukuo/services/firebase_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 class UserInputProvider with ChangeNotifier {
   List<CurrencyAmount> _currencies = [];
@@ -14,6 +17,10 @@ class UserInputProvider with ChangeNotifier {
   ExchangeRateProvider? _exchangeRateProvider; // Add this
   List<CurrencyTransaction> transactions = [];
   List<Transaction> _transactions = [];
+  final FirebaseService _firebaseService = FirebaseService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  StreamSubscription? _transactionSubscription;
+  StreamSubscription? _currencySubscription;
 
   List<CurrencyAmount> get currencies => _currencies;
   List<double> get balanceHistory => _balanceHistory;
@@ -33,56 +40,195 @@ class UserInputProvider with ChangeNotifier {
     return transactions.where((t) => t.currencyCode == currencyCode).toList();
   }
 
-UserInputProvider() {
-    loadCurrencies(); // Ensure currencies are loaded on initialization
-    _loadTransactions();
+  UserInputProvider() {
+    // Listen to auth state changes
+    _auth.authStateChanges().listen((User? user) {
+      if (user != null) {
+        // User logged in, setup listeners
+        _setupFirebaseListeners();
+        loadTransactions(); // Load initial data
+        loadCurrencies();
+      } else {
+        // User logged out, cancel listeners
+        _transactionSubscription?.cancel();
+        _currencySubscription?.cancel();
+        // Clear local data
+        transactions = [];
+        _transactions = [];
+        _currencies = [];
+        notifyListeners();
+      }
+    });
+  }
+
+  void _setupFirebaseListeners() {
+    final user = _auth.currentUser;
+    if (user != null) {
+      // Listen to transaction changes
+      _transactionSubscription?.cancel(); // Cancel existing subscription if any
+      _transactionSubscription = _firebaseService
+          .watchTransactions(user.uid)
+          .listen((updatedTransactions) {
+        print(
+            'Received transaction update: ${updatedTransactions.length} transactions'); // Debug log
+        transactions = updatedTransactions;
+        _transactions = updatedTransactions
+            .map((t) => Transaction(
+                  currencyCode: t.currencyCode,
+                  amount: t.amount,
+                  timestamp: t.timestamp,
+                  type: t.type,
+                ))
+            .toList();
+
+        // Update currency totals based on transactions
+        _updateCurrencyTotalsFromTransactions();
+
+        if (_exchangeRateProvider != null) {
+          recalculateHistory(_exchangeRateProvider!.exchangeRates);
+        }
+        notifyListeners();
+      }, onError: (error) {
+        print('Error in transaction stream: $error'); // Error logging
+      });
+
+      // Listen to currency changes
+      _currencySubscription?.cancel(); // Cancel existing subscription if any
+      _currencySubscription = _firebaseService.watchCurrencies(user.uid).listen(
+          (updatedCurrencies) {
+        print(
+            'Received currency update: ${updatedCurrencies.length} currencies'); // Debug log
+        _currencies = updatedCurrencies;
+        notifyListeners();
+      }, onError: (error) {
+        print('Error in currency stream: $error'); // Error logging
+      });
+    }
+  }
+
+  // Add this new method to update currency totals
+  void _updateCurrencyTotalsFromTransactions() {
+    // Create a map to store currency totals
+    final Map<String, CurrencyAmount> currencyTotals = {};
+
+    // Sort transactions by timestamp to ensure correct order
+    final sortedTransactions = List.from(transactions)
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    // Calculate totals from transactions
+    for (var transaction in sortedTransactions) {
+      if (!currencyTotals.containsKey(transaction.currencyCode)) {
+        // Find currency details from existing currencies or create new
+        final existingCurrency = _currencies.firstWhere(
+          (c) => c.code == transaction.currencyCode,
+          orElse: () => CurrencyAmount(
+            code: transaction.currencyCode,
+            amount: 0,
+            name: transaction.currencyCode,
+            flag: '🏳️',
+          ),
+        );
+
+        currencyTotals[transaction.currencyCode] = CurrencyAmount(
+          code: existingCurrency.code,
+          name: existingCurrency.name,
+          flag: existingCurrency.flag,
+          amount: 0,
+        );
+      }
+
+      // Update the amount
+      final current = currencyTotals[transaction.currencyCode]!;
+      currencyTotals[transaction.currencyCode] = CurrencyAmount(
+        code: current.code,
+        name: current.name,
+        flag: current.flag,
+        amount: current.amount + transaction.amount,
+      );
+    }
+
+    // Update _currencies with the calculated totals
+    _currencies = currencyTotals.values.where((c) => c.amount > 0).toList();
+  }
+
+  @override
+  void dispose() {
+    _transactionSubscription?.cancel();
+    _currencySubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> loadCurrencies() async {
-    final prefs = await SharedPreferences.getInstance();
-    final storedCurrencies = prefs.getString('currencies');
-    final storedBalanceHistory = prefs.getString('balance_history');
-    final storedTimeHistory = prefs.getString('time_history');
+    try {
+      // Load from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final storedCurrencies = prefs.getString('currencies');
 
-    if (storedCurrencies != null) {
-      final List<dynamic> jsonList = jsonDecode(storedCurrencies);
-      _currencies = jsonList.map((json) => CurrencyAmount.fromJson(json)).toList();
-    }
-
-    // Initialize empty lists if no stored data
-    _balanceHistory = [];
-    _timeHistory = [];
-
-    // Load balance history
-    if (storedBalanceHistory != null && storedTimeHistory != null) {
-      _balanceHistory = List<double>.from(jsonDecode(storedBalanceHistory));
-      _timeHistory = (jsonDecode(storedTimeHistory) as List)
-          .map((e) => DateTime.parse(e))
-          .toList();
-      
-      // Sync with exchange rate provider if available
-      if (_exchangeRateProvider != null) {
-        _exchangeRateProvider!.syncBalanceHistory(_balanceHistory, _timeHistory);
+      // Load from Firebase if user is logged in
+      final user = _auth.currentUser;
+      if (user != null) {
+        final firebaseCurrencies =
+            await _firebaseService.loadCurrencies(user.uid);
+        if (firebaseCurrencies.isNotEmpty) {
+          _currencies = firebaseCurrencies;
+        } else if (storedCurrencies != null) {
+          // Use local data if Firebase is empty
+          final List<dynamic> jsonList = jsonDecode(storedCurrencies);
+          _currencies =
+              jsonList.map((json) => CurrencyAmount.fromJson(json)).toList();
+          // Sync to Firebase
+          await _firebaseService.saveCurrencyData(user.uid, _currencies);
+        }
+      } else if (storedCurrencies != null) {
+        // Fallback to local storage if not logged in
+        final List<dynamic> jsonList = jsonDecode(storedCurrencies);
+        _currencies =
+            jsonList.map((json) => CurrencyAmount.fromJson(json)).toList();
       }
-    } else if (_currencies.isNotEmpty) {
-      // If we have currencies but no history, initialize with current balance
-      final currentBalance = calculateTotalInLocalCurrency(
-          'USD', _exchangeRateProvider?.exchangeRates ?? {'USD': 1.0});
-      _balanceHistory = [currentBalance];
-      _timeHistory = [DateTime.now()];
-      
-      // Save the initial history
-      await prefs.setString('balance_history', jsonEncode(_balanceHistory));
-      await prefs.setString('time_history',
-          jsonEncode(_timeHistory.map((e) => e.toIso8601String()).toList()));
-      
-      // Sync with exchange rate provider
-      if (_exchangeRateProvider != null) {
-        _exchangeRateProvider!.syncBalanceHistory(_balanceHistory, _timeHistory);
-      }
-    }
 
-    notifyListeners();
+      final storedBalanceHistory = prefs.getString('balance_history');
+      final storedTimeHistory = prefs.getString('time_history');
+
+      // Initialize empty lists if no stored data
+      _balanceHistory = [];
+      _timeHistory = [];
+
+      // Load balance history
+      if (storedBalanceHistory != null && storedTimeHistory != null) {
+        _balanceHistory = List<double>.from(jsonDecode(storedBalanceHistory));
+        _timeHistory = (jsonDecode(storedTimeHistory) as List)
+            .map((e) => DateTime.parse(e))
+            .toList();
+
+        // Sync with exchange rate provider if available
+        if (_exchangeRateProvider != null) {
+          _exchangeRateProvider!
+              .syncBalanceHistory(_balanceHistory, _timeHistory);
+        }
+      } else if (_currencies.isNotEmpty) {
+        // If we have currencies but no history, initialize with current balance
+        final currentBalance = calculateTotalInLocalCurrency(
+            'USD', _exchangeRateProvider?.exchangeRates ?? {'USD': 1.0});
+        _balanceHistory = [currentBalance];
+        _timeHistory = [DateTime.now()];
+
+        // Save the initial history
+        await prefs.setString('balance_history', jsonEncode(_balanceHistory));
+        await prefs.setString('time_history',
+            jsonEncode(_timeHistory.map((e) => e.toIso8601String()).toList()));
+
+        // Sync with exchange rate provider
+        if (_exchangeRateProvider != null) {
+          _exchangeRateProvider!
+              .syncBalanceHistory(_balanceHistory, _timeHistory);
+        }
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print('Error loading currencies: $e');
+      rethrow;
+    }
   }
 
   // Add input validation
@@ -102,59 +248,20 @@ UserInputProvider() {
         return false;
       }
 
-      // Find existing currency with the same code
-      final existingIndex =
-          _currencies.indexWhere((c) => c.code == currency.code);
-
-      if (existingIndex != -1) {
-        // Update existing currency amount
-        final existingAmount = _currencies[existingIndex].amount;
-        final newAmount = isSubtraction
-            ? existingAmount - currency.amount.abs()
-            : existingAmount + currency.amount;
-
-        if (newAmount < 0) {
-          throw Exception('Insufficient balance');
-        }
-
-        _currencies[existingIndex] = CurrencyAmount(
-          code: currency.code,
-          name: currency.name,
-          flag: currency.flag,
-          amount: newAmount,
-        );
-      } else {
-        // Add new currency
-        if (isSubtraction) {
-          throw Exception('Cannot subtract from non-existent currency');
-        }
-        _currencies.insert(0, currency);
-      }
-
       final transaction = CurrencyTransaction(
         currencyCode: currency.code,
         amount: isSubtraction ? -currency.amount.abs() : currency.amount,
         timestamp: DateTime.now(),
         type: isSubtraction ? 'Subtraction' : 'Addition',
       );
-      transactions.add(transaction);
 
-      // Create and add transaction
-      final newTransaction = Transaction(
-        currencyCode: currency.code,
-        amount: isSubtraction ? -currency.amount : currency.amount,
-        timestamp: DateTime.now(),
-        type: isSubtraction ? 'Subtraction' : 'Addition',
-      );
-      _transactions.add(newTransaction);
+      // Save to Firebase first
+      final user = _auth.currentUser;
+      if (user != null) {
+        await _firebaseService.saveTransaction(user.uid, transaction);
+        // Currency totals will be updated through the Firebase listener
+      }
 
-      await Future.wait([
-        _saveCurrencies(),
-        _saveTransactions(),
-      ]);
-
-      updateTotalBalance(exchangeRates, localCurrencyCode);
-      notifyListeners();
       return true;
     } catch (e) {
       print('Error adding/subtracting currency: $e');
@@ -173,6 +280,51 @@ UserInputProvider() {
 
   // Add method to load transactions
   Future<void> loadTransactions() async {
+    try {
+      // Load from Firebase if user is logged in
+      final user = _auth.currentUser;
+      if (user != null) {
+        final firebaseTransactions =
+            await _firebaseService.loadTransactions(user.uid);
+        if (firebaseTransactions.isNotEmpty) {
+          transactions = firebaseTransactions;
+          _transactions = firebaseTransactions
+              .map((t) => Transaction(
+                    currencyCode: t.currencyCode,
+                    amount: t.amount,
+                    timestamp: t.timestamp,
+                    type: t.type,
+                  ))
+              .toList();
+        } else {
+          // Load from SharedPreferences as fallback
+          await _loadFromSharedPreferences();
+          // Sync local data to Firebase
+          for (var transaction in transactions) {
+            await _firebaseService.saveTransaction(user.uid, transaction);
+          }
+        }
+
+        // Setup real-time listeners
+        _setupFirebaseListeners();
+      } else {
+        // Load from SharedPreferences if not logged in
+        await _loadFromSharedPreferences();
+      }
+
+      // After loading transactions, recalculate history
+      if (_exchangeRateProvider != null) {
+        await recalculateHistory(_exchangeRateProvider!.exchangeRates);
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print('Error loading transactions: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _loadFromSharedPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     final storedTransactions = prefs.getString('transactions');
 
@@ -180,16 +332,19 @@ UserInputProvider() {
       final List<dynamic> jsonList = jsonDecode(storedTransactions);
       transactions =
           jsonList.map((json) => CurrencyTransaction.fromJson(json)).toList();
+      _transactions =
+          jsonList.map((json) => Transaction.fromJson(json)).toList();
     }
   }
 
   Future<void> _loadTransactions() async {
     final prefs = await SharedPreferences.getInstance();
     final storedTransactions = prefs.getString('transactions');
-    
+
     if (storedTransactions != null) {
       final List<dynamic> jsonList = jsonDecode(storedTransactions);
-      _transactions = jsonList.map((json) => Transaction.fromJson(json)).toList();
+      _transactions =
+          jsonList.map((json) => Transaction.fromJson(json)).toList();
     }
   }
 
@@ -210,15 +365,24 @@ UserInputProvider() {
   }
 
   Future<void> _saveCurrencies() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = _currencies
-        .map((c) => {
-              'code': c.code,
-              'amount': c.amount,
-            })
-        .toList();
-    await prefs.setString('currencies', jsonEncode(jsonList));
-    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = _currencies.map((c) => c.toJson()).toList();
+
+      // Save to SharedPreferences
+      await prefs.setString('currencies', jsonEncode(jsonList));
+
+      // Save to Firebase if user is logged in
+      final user = _auth.currentUser;
+      if (user != null) {
+        await _firebaseService.saveCurrencyData(user.uid, _currencies);
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print('Error saving currencies: $e');
+      rethrow;
+    }
   }
 
   // Modify updateTotalBalance to use the provider reference
@@ -293,19 +457,24 @@ UserInputProvider() {
   }
 
   List<Transaction> getTransactions() {
-    return List.from(_transactions.reversed); // Return newest first
+    // Remove the reversed to maintain chronological order
+    return List.from(_transactions);
   }
 
   // Add this new method to recalculate history with new rates
   Future<void> recalculateHistory(Map<String, double> newRates) async {
-    if (_currencies.isEmpty) return;
+    if (transactions.isEmpty) return;
 
     // Clear existing history
     _balanceHistory = [];
     _timeHistory = [];
 
+    // Sort transactions chronologically (oldest to newest)
+    final sortedTransactions = List.from(transactions)
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
     // Get all unique timestamps from transactions
-    final Set<DateTime> uniqueTimestamps = transactions
+    final Set<DateTime> uniqueTimestamps = sortedTransactions
         .map((t) => DateTime(
               t.timestamp.year,
               t.timestamp.month,
@@ -314,34 +483,37 @@ UserInputProvider() {
               t.timestamp.minute,
             ))
         .toSet()
-      ..add(DateTime.now()); // Add current time
+      ..add(DateTime.now());
 
-    // Sort timestamps
+    // Sort timestamps chronologically
     final sortedTimestamps = uniqueTimestamps.toList()..sort();
 
     // Calculate balance at each timestamp
+    double runningTotal = 0;
     for (final timestamp in sortedTimestamps) {
       // Get all transactions up to this timestamp
-      final relevantTransactions = transactions
-          .where((t) => t.timestamp.isBefore(timestamp) || t.timestamp == timestamp)
+      final relevantTransactions = sortedTransactions
+          .where((t) =>
+              t.timestamp.isBefore(timestamp) || t.timestamp == timestamp)
           .toList();
 
       // Calculate total balance at this timestamp
-      double totalBalance = 0;
       final Map<String, double> currencyTotals = {};
 
       for (final transaction in relevantTransactions) {
         currencyTotals[transaction.currencyCode] =
-            (currencyTotals[transaction.currencyCode] ?? 0) + transaction.amount;
+            (currencyTotals[transaction.currencyCode] ?? 0) +
+                transaction.amount;
       }
 
       // Convert all currency totals to USD (or selected local currency)
+      runningTotal = 0; // Reset running total for this timestamp
       for (final entry in currencyTotals.entries) {
         final rate = newRates[entry.key] ?? 1.0;
-        totalBalance += entry.value / rate * (newRates['USD'] ?? 1.0);
+        runningTotal += entry.value / rate * (newRates['USD'] ?? 1.0);
       }
 
-      _balanceHistory.add(totalBalance);
+      _balanceHistory.add(runningTotal);
       _timeHistory.add(timestamp);
     }
 
