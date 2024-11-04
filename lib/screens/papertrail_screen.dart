@@ -85,7 +85,8 @@ class PaperTrailScreen extends StatelessWidget {
         ),
         child: Consumer<UserInputProvider>(
           builder: (context, provider, child) {
-            final transactions = provider.getTransactions();
+            // Get transactions and reverse the list to show newest at the top
+            final transactions = provider.getTransactions().reversed.toList();
 
             if (transactions.isEmpty) {
               return _buildEmptyState(availableHeight);
@@ -109,7 +110,7 @@ class PaperTrailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  ...transactions.map(_buildTransactionItem).toList(),
+                  ...transactions.map(_buildTransactionItem),
                 ],
               ),
             );
