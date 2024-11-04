@@ -82,7 +82,7 @@ class _EditCurrencyScreenState extends State<EditCurrencyScreen> {
       final exchangeRateProvider =
           Provider.of<ExchangeRateProvider>(context, listen: false);
 
-      final String localCurrencyCode = 'USD'; // Replace with dynamic value
+      const String localCurrencyCode = 'USD'; // Replace with dynamic value
 
       // Update the currency with the exchange rates and local currency
       userInputProvider.updateCurrency(
