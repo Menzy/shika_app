@@ -319,7 +319,7 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
         final exchangeRateProvider =
             Provider.of<ExchangeRateProvider>(context, listen: false);
 
-        final String localCurrencyCode = 'USD';
+        const String localCurrencyCode = 'USD';
 
         if (widget.initialCurrency != null) {
           Navigator.pop(context, updatedCurrency);
