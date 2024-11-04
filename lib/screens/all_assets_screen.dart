@@ -14,7 +14,7 @@ class AllAssetsScreen extends StatefulWidget {
 }
 
 class _AllAssetsScreenState extends State<AllAssetsScreen> {
-  String _selectedLocalCurrency = 'USD'; // Default currency for conversion
+  final String _selectedLocalCurrency = 'USD';
 
   @override
   Widget build(BuildContext context) {
