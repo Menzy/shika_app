@@ -1,5 +1,3 @@
-import 'package:kukuo/models/currency_model.dart';
-
 class CurrencyAmount {
   final String code;
   final String name;
@@ -21,21 +19,11 @@ class CurrencyAmount {
       };
 
   factory CurrencyAmount.fromJson(Map<String, dynamic> json) {
-    String code = json['code'];
-    double amount = json['amount'];
-
-    // Find the corresponding currency details from the local list
-    Currency? currency = localCurrencyList.firstWhere(
-      (c) => c.code == code,
-      orElse: () => Currency(
-          code: code, name: 'Unknown', flag: '🏳️'), // default if not found
-    );
-
     return CurrencyAmount(
-      code: currency.code,
-      name: currency.name,
-      flag: currency.flag,
-      amount: amount,
+      code: json['code'],
+      name: json['name'] ?? 'Unknown',
+      flag: json['flag'] ?? '🏳️',
+      amount: json['amount'].toDouble(),
     );
   }
 }
