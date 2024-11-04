@@ -50,6 +50,12 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // Add this helper method
+  String _capitalizeFirstLetter(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1);
+  }
+
   Future<String?> signUpWithEmail(
       String email, String password, String username) async {
     try {
@@ -63,14 +69,17 @@ class AuthProvider extends ChangeNotifier {
         password: password,
       );
 
+      // Capitalize first letter of username
+      final capitalizedUsername = _capitalizeFirstLetter(username);
+
       // Store additional user data in Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'username': username,
+        'username': capitalizedUsername, // Store capitalized username
         'email': email,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      _username = username;
+      _username = capitalizedUsername;
       return null;
     } on FirebaseAuthException catch (e) {
       return e.message;
@@ -104,41 +113,42 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      // Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
+
       if (googleUser == null) {
         _isLoading = false;
         notifyListeners();
         return 'Google Sign In was cancelled';
       }
 
-      // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      // Create a new credential
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Once signed in, return the UserCredential
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
       _user = userCredential.user;
+
+      // Extract and capitalize first name
+      final String firstName = _capitalizeFirstLetter(
+          googleUser.displayName?.split(' ')[0] ?? 'User');
 
       // Store user data if it's their first sign in
       if (userCredential.additionalUserInfo?.isNewUser ?? false) {
         await _firestore.collection('users').doc(_user!.uid).set({
-          'username': googleUser.displayName,
+          'username': firstName,
           'email': googleUser.email,
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
 
-      _username = googleUser.displayName;
+      _username = firstName; // Set only first name as username
       return null;
     } catch (e) {
-      print('Google sign in error: $e'); // Add this for debugging
+      print('Google sign in error: $e');
       return e.toString();
     } finally {
       _isLoading = false;
