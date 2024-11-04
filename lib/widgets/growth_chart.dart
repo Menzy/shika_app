@@ -75,7 +75,7 @@ class GrowthChart extends StatelessWidget {
                 ),
               ),
               Icon(
-                percentage >= 0 ? Iconsax.arrow_up : Iconsax.arrow_down,
+                percentage >= 0 ? Iconsax.arrow_up_3 : Iconsax.arrow_down,
                 color: percentage >= 0 ? Colors.green : Colors.red,
               )
             ],
@@ -84,7 +84,7 @@ class GrowthChart extends StatelessWidget {
           const Text(
             'First Entry',
             style: TextStyle(
-              fontSize: 25,
+              fontSize: 20,
               color: Color(0xFFFAFFB5),
             ),
           ),
@@ -96,11 +96,11 @@ class GrowthChart extends StatelessWidget {
 
   String _formatNumber(double value) {
     if (value >= 1000000000) {
-      return '${(value / 1000000000).toStringAsFixed(1)}B';
+      return '${(value / 1000000000).toStringAsFixed(0)}B';
     } else if (value >= 1000000) {
-      return '${(value / 1000000).toStringAsFixed(1)}M';
+      return '${(value / 1000000).toStringAsFixed(0)}M';
     } else if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(1)}k';
+      return '${(value / 1000).toStringAsFixed(0)}k';
     } else {
       return value.toStringAsFixed(0);
     }
@@ -140,7 +140,11 @@ class GrowthChart extends StatelessWidget {
                   showTitles: true,
                   interval: chartData.interval,
                   getTitlesWidget: (value, meta) {
-                    final currencySymbol = Currency.getSymbolForCode(selectedLocalCurrency);
+                    if (value == chartData.highest + chartData.interval) {
+                      return const SizedBox.shrink();
+                    }
+                    final currencySymbol =
+                        Currency.getSymbolForCode(selectedLocalCurrency);
 
                     return Padding(
                       padding: const EdgeInsets.only(left: 8),
@@ -148,13 +152,12 @@ class GrowthChart extends StatelessWidget {
                         '$currencySymbol${_formatNumber(value)}',
                         style: const TextStyle(
                           color: Color(0xFF008F8A),
-                          fontSize: 10,
+                          fontSize: 8,
                         ),
                       ),
                     );
                   },
-                  reservedSize:
-                      45, // Increased to accommodate formatted numbers
+                  reservedSize: 30,
                 ),
               ),
               leftTitles: const AxisTitles(
@@ -169,7 +172,7 @@ class GrowthChart extends StatelessWidget {
             ),
             borderData: FlBorderData(show: false),
             minY: chartData.lowest > 0 ? 0 : chartData.lowest,
-            maxY: chartData.highest + chartData.interval,
+            maxY: chartData.highest,
             backgroundColor: Colors.transparent,
             lineBarsData: [
               LineChartBarData(
@@ -215,7 +218,8 @@ class GrowthChart extends StatelessWidget {
                 tooltipRoundedRadius: 8,
                 getTooltipItems: (touchedSpots) {
                   return touchedSpots.map((LineBarSpot touchedSpot) {
-                    final currencySymbol = Currency.getSymbolForCode(selectedLocalCurrency);
+                    final currencySymbol =
+                        Currency.getSymbolForCode(selectedLocalCurrency);
 
                     return LineTooltipItem(
                       '$currencySymbol${_formatNumber(touchedSpot.y)}',
