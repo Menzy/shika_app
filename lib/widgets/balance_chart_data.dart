@@ -5,14 +5,14 @@ import 'package:kukuo/models/balance_data.dart';
 class BalanceChart extends StatelessWidget {
   final List<BalanceData> data;
 
-  const BalanceChart({Key? key, required this.data}) : super(key: key);
+  const BalanceChart({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
     return LineChart(
       LineChartData(
-        gridData: FlGridData(show: false),
-        titlesData: FlTitlesData(show: false),
+        gridData: const FlGridData(show: false),
+        titlesData: const FlTitlesData(show: false),
         borderData: FlBorderData(show: false),
         lineBarsData: [
           LineChartBarData(
@@ -23,10 +23,10 @@ class BalanceChart extends StatelessWidget {
                     ))
                 .toList(),
             isCurved: false,
-            color: Color(0xFFD8FE00),
+            color: const Color(0xFFD8FE00),
             barWidth: 2.16,
             isStrokeCapRound: true,
-            dotData: FlDotData(show: false),
+            dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(show: false),
           ),
         ],
