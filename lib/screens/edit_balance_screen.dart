@@ -24,7 +24,7 @@ class EditBalanceScreen extends StatelessWidget {
     final exchangeRateProvider =
         Provider.of<ExchangeRateProvider>(context, listen: false);
 
-    final String localCurrencyCode = 'USD'; // Or fetch this from your settings
+    const String localCurrencyCode = 'USD';
 
     return Scaffold(
       body: TTopSectionContainer(
