@@ -2,10 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:kukuo/navigation_menu.dart';
-import 'package:kukuo/loading_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:kukuo/providers/auth_provider.dart';
-import 'package:kukuo/screens/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -43,18 +41,16 @@ class _SplashScreenState extends State<SplashScreen> {
       );
     }
 
-    return Consumer<AuthProvider>(
-      builder: (context, auth, _) {
-        if (auth.isLoading) {
-          return const LoadingScreen();
-        }
-
-        if (auth.isLoggedIn) {
-          return const NavigationMenu();
-        }
-
-        return const LoginScreen();
-      },
-    );
+    // Skip authentication and go directly to the main app
+    // We'll automatically log in a default user in the background
+    Future.microtask(() {
+      // Auto-login with default user if not already logged in
+      if (!context.read<AuthProvider>().isLoggedIn) {
+        context.read<AuthProvider>().autoLogin();
+      }
+    });
+    
+    // Always return the NavigationMenu
+    return const NavigationMenu();
   }
 }

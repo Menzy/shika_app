@@ -7,29 +7,29 @@ import 'dart:convert';
 import 'package:kukuo/models/currency_amount_model.dart';
 import 'package:kukuo/models/transaction_model.dart';
 import 'package:kukuo/services/firebase_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
 class UserInputProvider with ChangeNotifier {
   List<CurrencyAmount> _currencies = [];
   List<double> _balanceHistory = [];
   List<DateTime> _timeHistory = [];
-  ExchangeRateProvider? _exchangeRateProvider; // Add this
+  ExchangeRateProvider? _exchangeRateProvider;
   List<CurrencyTransaction> transactions = [];
   List<Transaction> _transactions = [];
+  // Keep FirebaseService for interface compatibility with other parts of the app
+  // We'll use it only as a placeholder since we've migrated to local storage
   final FirebaseService _firebaseService = FirebaseService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final StreamController<List<CurrencyTransaction>>
+      _transactionStreamController =
+      StreamController<List<CurrencyTransaction>>.broadcast();
+  final StreamController<List<CurrencyAmount>> _currencyStreamController =
+      StreamController<List<CurrencyAmount>>.broadcast();
   StreamSubscription? _transactionSubscription;
   StreamSubscription? _currencySubscription;
 
   List<CurrencyAmount> get currencies => _currencies;
   List<double> get balanceHistory => _balanceHistory;
   List<DateTime> get timeHistory => _timeHistory;
-
-  // Add this setter
-  void setExchangeRateProvider(ExchangeRateProvider provider) {
-    _exchangeRateProvider = provider;
-  }
 
   void addTransaction(CurrencyTransaction transaction) {
     transactions.add(transaction);
@@ -41,69 +41,60 @@ class UserInputProvider with ChangeNotifier {
   }
 
   UserInputProvider() {
-    // Listen to auth state changes
-    _auth.authStateChanges().listen((User? user) {
-      if (user != null) {
-        // User logged in, setup listeners
-        _setupFirebaseListeners();
-        loadTransactions(); // Load initial data
-        loadCurrencies();
-      } else {
-        // User logged out, cancel listeners
-        _transactionSubscription?.cancel();
-        _currencySubscription?.cancel();
-        // Clear local data
-        transactions = [];
-        _transactions = [];
-        _currencies = [];
-        notifyListeners();
-      }
-    });
+    // Initialize with local data
+    loadTransactions();
+    loadCurrencies();
   }
 
-  void _setupFirebaseListeners() {
-    final user = _auth.currentUser;
-    if (user != null) {
-      // Listen to transaction changes
-      _transactionSubscription?.cancel(); // Cancel existing subscription if any
-      _transactionSubscription = _firebaseService
-          .watchTransactions(user.uid)
-          .listen((updatedTransactions) {
-        print(
-            'Received transaction update: ${updatedTransactions.length} transactions'); // Debug log
-        transactions = updatedTransactions;
-        _transactions = updatedTransactions
-            .map((t) => Transaction(
-                  currencyCode: t.currencyCode,
-                  amount: t.amount,
-                  timestamp: t.timestamp,
-                  type: t.type,
-                ))
-            .toList();
-
-        // Update currency totals based on transactions
-        _updateCurrencyTotalsFromTransactions();
-
-        if (_exchangeRateProvider != null) {
-          recalculateHistory(_exchangeRateProvider!.exchangeRates);
-        }
-        notifyListeners();
-      }, onError: (error) {
-        print('Error in transaction stream: $error'); // Error logging
-      });
-
-      // Listen to currency changes
-      _currencySubscription?.cancel(); // Cancel existing subscription if any
-      _currencySubscription = _firebaseService.watchCurrencies(user.uid).listen(
-          (updatedCurrencies) {
-        print(
-            'Received currency update: ${updatedCurrencies.length} currencies'); // Debug log
-        _currencies = updatedCurrencies;
-        notifyListeners();
-      }, onError: (error) {
-        print('Error in currency stream: $error'); // Error logging
-      });
+  // Set the exchange rate provider from outside
+  void setExchangeRateProvider(ExchangeRateProvider exchangeRateProvider) {
+    _exchangeRateProvider = exchangeRateProvider;
+    if (_balanceHistory.isNotEmpty && _timeHistory.isNotEmpty) {
+      _exchangeRateProvider!.syncBalanceHistory(_balanceHistory, _timeHistory);
     }
+  }
+
+  // Setup local listeners for data changes
+  void _setupLocalListeners() {
+    // Listen to transaction changes
+    _transactionSubscription?.cancel();
+    _transactionSubscription =
+        _transactionStreamController.stream.listen((updatedTransactions) {
+      print(
+          'Received transaction update: ${updatedTransactions.length} transactions');
+      transactions = updatedTransactions;
+      _transactions = updatedTransactions
+          .map((t) => Transaction(
+                currencyCode: t.currencyCode,
+                amount: t.amount,
+                timestamp: t.timestamp,
+                type: t.type,
+              ))
+          .toList();
+
+      // Update currency totals based on transactions
+      _updateCurrencyTotalsFromTransactions();
+
+      if (_exchangeRateProvider != null) {
+        recalculateHistory(_exchangeRateProvider!.exchangeRates);
+      }
+      notifyListeners();
+    });
+
+    // Listen to currency changes
+    _currencySubscription?.cancel();
+    _currencySubscription =
+        _currencyStreamController.stream.listen((updatedCurrencies) {
+      print('Received currency update: ${updatedCurrencies.length} currencies');
+      _currencies = updatedCurrencies;
+      notifyListeners();
+    });
+
+    // Initial data load
+    _loadFromSharedPreferences().then((_) {
+      _transactionStreamController.add(transactions);
+      _currencyStreamController.add(_currencies);
+    });
   }
 
   // Add this new method to update currency totals
@@ -160,44 +151,30 @@ class UserInputProvider with ChangeNotifier {
 
   Future<void> loadCurrencies() async {
     try {
-      // Load from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final storedCurrencies = prefs.getString('currencies');
 
-      // Load from Firebase if user is logged in
-      final user = _auth.currentUser;
-      if (user != null) {
-        final firebaseCurrencies =
-            await _firebaseService.loadCurrencies(user.uid);
-        if (firebaseCurrencies.isNotEmpty) {
-          _currencies = firebaseCurrencies;
-        } else if (storedCurrencies != null) {
-          // Use local data if Firebase is empty
-          final List<dynamic> jsonList = jsonDecode(storedCurrencies);
-          _currencies =
-              jsonList.map((json) => CurrencyAmount.fromJson(json)).toList();
-          // Sync to Firebase
-          await _firebaseService.saveCurrencyData(user.uid, _currencies);
-        }
-      } else if (storedCurrencies != null) {
-        // Fallback to local storage if not logged in
+      // Load currencies from SharedPreferences
+      if (storedCurrencies != null) {
         final List<dynamic> jsonList = jsonDecode(storedCurrencies);
         _currencies =
             jsonList.map((json) => CurrencyAmount.fromJson(json)).toList();
       }
 
+      // Load balance history
       final storedBalanceHistory = prefs.getString('balance_history');
       final storedTimeHistory = prefs.getString('time_history');
 
-      // Initialize empty lists if no stored data
-      _balanceHistory = [];
-      _timeHistory = [];
-
-      // Load balance history
       if (storedBalanceHistory != null && storedTimeHistory != null) {
-        _balanceHistory = List<double>.from(jsonDecode(storedBalanceHistory));
-        _timeHistory = (jsonDecode(storedTimeHistory) as List)
-            .map((e) => DateTime.parse(e))
+        final List<dynamic> balanceJsonList = jsonDecode(storedBalanceHistory);
+        final List<dynamic> timeJsonList = jsonDecode(storedTimeHistory);
+
+        _balanceHistory = balanceJsonList
+            .map((json) =>
+                (json is int) ? json.toDouble() : (json as num).toDouble())
+            .toList();
+        _timeHistory = timeJsonList
+            .map((json) => DateTime.parse(json.toString()))
             .toList();
 
         // Sync with exchange rate provider if available
@@ -205,24 +182,10 @@ class UserInputProvider with ChangeNotifier {
           _exchangeRateProvider!
               .syncBalanceHistory(_balanceHistory, _timeHistory);
         }
-      } else if (_currencies.isNotEmpty) {
-        // If we have currencies but no history, initialize with current balance
-        final currentBalance = calculateTotalInLocalCurrency(
-            'USD', _exchangeRateProvider?.exchangeRates ?? {'USD': 1.0});
-        _balanceHistory = [currentBalance];
-        _timeHistory = [DateTime.now()];
-
-        // Save the initial history
-        await prefs.setString('balance_history', jsonEncode(_balanceHistory));
-        await prefs.setString('time_history',
-            jsonEncode(_timeHistory.map((e) => e.toIso8601String()).toList()));
-
-        // Sync with exchange rate provider
-        if (_exchangeRateProvider != null) {
-          _exchangeRateProvider!
-              .syncBalanceHistory(_balanceHistory, _timeHistory);
-        }
       }
+
+      // Update currency stream
+      _currencyStreamController.add(_currencies);
 
       notifyListeners();
     } catch (e) {
@@ -255,12 +218,26 @@ class UserInputProvider with ChangeNotifier {
         type: isSubtraction ? 'Subtraction' : 'Addition',
       );
 
-      // Save to Firebase first
-      final user = _auth.currentUser;
-      if (user != null) {
-        await _firebaseService.saveTransaction(user.uid, transaction);
-        // Currency totals will be updated through the Firebase listener
-      }
+      // Save transaction to local storage
+      transactions.add(transaction);
+      _transactions.add(Transaction(
+        currencyCode: transaction.currencyCode,
+        amount: transaction.amount,
+        timestamp: transaction.timestamp,
+        type: transaction.type,
+      ));
+
+      // Save to local storage
+      await _saveTransactions();
+
+      // Update currency totals
+      _updateCurrencyTotalsFromTransactions();
+
+      // Update the balance history
+      updateTotalBalance(exchangeRates, localCurrencyCode);
+
+      // Notify listeners about the transaction
+      _transactionStreamController.add(transactions);
 
       return true;
     } catch (e) {
@@ -281,36 +258,11 @@ class UserInputProvider with ChangeNotifier {
   // Add method to load transactions
   Future<void> loadTransactions() async {
     try {
-      // Load from Firebase if user is logged in
-      final user = _auth.currentUser;
-      if (user != null) {
-        final firebaseTransactions =
-            await _firebaseService.loadTransactions(user.uid);
-        if (firebaseTransactions.isNotEmpty) {
-          transactions = firebaseTransactions;
-          _transactions = firebaseTransactions
-              .map((t) => Transaction(
-                    currencyCode: t.currencyCode,
-                    amount: t.amount,
-                    timestamp: t.timestamp,
-                    type: t.type,
-                  ))
-              .toList();
-        } else {
-          // Load from SharedPreferences as fallback
-          await _loadFromSharedPreferences();
-          // Sync local data to Firebase
-          for (var transaction in transactions) {
-            await _firebaseService.saveTransaction(user.uid, transaction);
-          }
-        }
+      // Load from SharedPreferences
+      await _loadFromSharedPreferences();
 
-        // Setup real-time listeners
-        _setupFirebaseListeners();
-      } else {
-        // Load from SharedPreferences if not logged in
-        await _loadFromSharedPreferences();
-      }
+      // Setup local listeners
+      _setupLocalListeners();
 
       // After loading transactions, recalculate history
       if (_exchangeRateProvider != null) {
@@ -332,17 +284,6 @@ class UserInputProvider with ChangeNotifier {
       final List<dynamic> jsonList = jsonDecode(storedTransactions);
       transactions =
           jsonList.map((json) => CurrencyTransaction.fromJson(json)).toList();
-      _transactions =
-          jsonList.map((json) => Transaction.fromJson(json)).toList();
-    }
-  }
-
-  Future<void> _loadTransactions() async {
-    final prefs = await SharedPreferences.getInstance();
-    final storedTransactions = prefs.getString('transactions');
-
-    if (storedTransactions != null) {
-      final List<dynamic> jsonList = jsonDecode(storedTransactions);
       _transactions =
           jsonList.map((json) => Transaction.fromJson(json)).toList();
     }
@@ -372,11 +313,8 @@ class UserInputProvider with ChangeNotifier {
       // Save to SharedPreferences
       await prefs.setString('currencies', jsonEncode(jsonList));
 
-      // Save to Firebase if user is logged in
-      final user = _auth.currentUser;
-      if (user != null) {
-        await _firebaseService.saveCurrencyData(user.uid, _currencies);
-      }
+      // Notify about currency changes
+      _currencyStreamController.add(_currencies);
 
       notifyListeners();
     } catch (e) {

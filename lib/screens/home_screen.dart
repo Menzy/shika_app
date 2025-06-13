@@ -8,7 +8,6 @@ import 'package:kukuo/screens/currency_screen.dart';
 import 'package:kukuo/widgets/total_balance.dart';
 import 'package:kukuo/widgets/added_list.dart';
 import 'package:kukuo/widgets/growth_chart.dart';
-import 'package:kukuo/providers/auth_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onSeeAllPressed;
@@ -83,18 +82,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Extracted welcome message widget
   Widget _buildWelcomeMessage() {
-    return Consumer<AuthProvider>(
-      builder: (context, auth, _) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Text(
-          'Welcome ${auth.username ?? 'User'}, let\'s make our first entry, shall we!',
-          style: const TextStyle(
-            color: Color.fromARGB(32, 216, 254, 0),
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-          ),
-          textAlign: TextAlign.center,
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20),
+      child: Text(
+        'Welcome! Let\'s make our first entry, shall we!',
+        style: TextStyle(
+          color: Color.fromARGB(32, 216, 254, 0),
+          fontSize: 20,
+          fontWeight: FontWeight.w500,
         ),
+        textAlign: TextAlign.center,
       ),
     );
   }
@@ -166,10 +163,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     Provider.of<ExchangeRateProvider>(context),
                 onTap: _selectLocalCurrency,
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.exit_to_app, color: Colors.white),
-              onPressed: () => context.read<AuthProvider>().signOut(context),
             ),
           ],
         ),

@@ -1,37 +1,55 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kukuo/screens/login_screen.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
+  static const String _userKey = 'user_data';
+  static const String _isLoggedInKey = 'is_logged_in';
+  
   bool _isLoading = false;
-  User? _user;
+  Map<String, dynamic>? _user;
   String? _username;
+  String? _email;
+  String? _userId;
+  
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _user != null;
   String? get username => _username;
-  User? get user => _user;
+  Map<String, dynamic>? get user => _user;
+  String? get userId => _userId;
+  String? get email => _email;
 
   AuthProvider() {
-    _auth.authStateChanges().listen((User? user) {
-      _user = user;
-      if (user != null) {
-        _loadUserData();
-      }
-      notifyListeners();
-    });
+    _loadUserData();
   }
 
   Future<void> _loadUserData() async {
-    final userData = await _firestore.collection('users').doc(_user!.uid).get();
-    if (userData.exists) {
-      _username = userData.data()?['username'];
-      notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    final isLoggedIn = prefs.getBool(_isLoggedInKey) ?? false;
+    
+    if (isLoggedIn) {
+      final userData = prefs.getString(_userKey);
+      if (userData != null) {
+        _user = Map<String, dynamic>.from(Map<String, dynamic>.from(await _parseUserData(userData)));
+        _username = _user!['username'];
+        _email = _user!['email'];
+        _userId = _user!['userId'];
+        notifyListeners();
+      }
+    }
+  }
+  
+  Future<Map<String, dynamic>> _parseUserData(String userData) async {
+    // Simple parsing of the stored JSON string
+    return Map<String, dynamic>.from(await jsonDecode(userData));
+  }
+  
+  Future<void> _saveUserData() async {
+    if (_user != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_userKey, jsonEncode(_user));
+      await prefs.setBool(_isLoggedInKey, true);
     }
   }
 
@@ -40,10 +58,35 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _user = _auth.currentUser;
-      if (_user != null) {
-        await _loadUserData();
-      }
+      await _loadUserData();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+  
+  /// Automatically logs in a default user without requiring credentials
+  /// This is used to bypass the login screen
+  Future<void> autoLogin() async {
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      // Create a default user
+      _user = {
+        'username': 'DefaultUser',
+        'email': 'default@example.com',
+        'userId': 'default-user-id',
+      };
+      
+      _username = _user!['username'];
+      _email = _user!['email'];
+      _userId = _user!['userId'];
+      
+      // Save the user data to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_userKey, jsonEncode(_user));
+      await prefs.setBool(_isLoggedInKey, true);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -62,27 +105,42 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      // Create user with email and password
-      final UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      // Check if email already exists
+      final prefs = await SharedPreferences.getInstance();
+      final userData = prefs.getString(_userKey);
+      
+      if (userData != null) {
+        final existingUser = await _parseUserData(userData);
+        if (existingUser['email'] == email) {
+          return 'Email already in use';
+        }
+      }
 
       // Capitalize first letter of username
       final capitalizedUsername = _capitalizeFirstLetter(username);
-
-      // Store additional user data in Firestore
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'username': capitalizedUsername, // Store capitalized username
+      
+      // Generate a unique user ID
+      final userId = DateTime.now().millisecondsSinceEpoch.toString();
+      
+      // Create user data
+      _user = {
+        'userId': userId,
+        'username': capitalizedUsername,
         'email': email,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
+        'password': password, // In a real app, you would hash this
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+      
       _username = capitalizedUsername;
+      _email = email;
+      _userId = userId;
+      
+      // Save user data
+      await _saveUserData();
+      
       return null;
-    } on FirebaseAuthException catch (e) {
-      return e.message;
+    } catch (e) {
+      return e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -94,14 +152,33 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
+      final prefs = await SharedPreferences.getInstance();
+      final userData = prefs.getString(_userKey);
+      
+      if (userData == null) {
+        return 'No account found with this email';
+      }
+      
+      final storedUser = await _parseUserData(userData);
+      
+      if (storedUser['email'] != email) {
+        return 'No account found with this email';
+      }
+      
+      if (storedUser['password'] != password) {
+        return 'Invalid password';
+      }
+      
+      _user = storedUser;
+      _username = storedUser['username'];
+      _email = storedUser['email'];
+      _userId = storedUser['userId'];
+      
+      await prefs.setBool(_isLoggedInKey, true);
+      
       return null;
-    } on FirebaseAuthException catch (e) {
-      return e.message;
+    } catch (e) {
+      return e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -112,41 +189,11 @@ class AuthProvider extends ChangeNotifier {
     try {
       _isLoading = true;
       notifyListeners();
-
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
-      if (googleUser == null) {
-        _isLoading = false;
-        notifyListeners();
-        return 'Google Sign In was cancelled';
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
-      _user = userCredential.user;
-
-      // Extract and capitalize first name
-      final String firstName = _capitalizeFirstLetter(
-          googleUser.displayName?.split(' ')[0] ?? 'User');
-
-      // Store user data if it's their first sign in
-      if (userCredential.additionalUserInfo?.isNewUser ?? false) {
-        await _firestore.collection('users').doc(_user!.uid).set({
-          'username': firstName,
-          'email': googleUser.email,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-
-      _username = firstName; // Set only first name as username
-      return null;
+      
+      // Since we're removing Firebase, we'll simulate Google sign-in
+      // In a real app, you would implement proper OAuth flow
+      
+      return 'Google Sign In is not available in this version';
     } catch (e) {
       print('Google sign in error: $e');
       return e.toString();
@@ -161,13 +208,14 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      await Future.wait([
-        _auth.signOut(),
-        _googleSignIn.signOut(),
-      ]);
+      // Clear user data from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_isLoggedInKey, false);
 
       _user = null;
       _username = null;
+      _email = null;
+      _userId = null;
 
       if (context.mounted) {
         // Navigate to login screen and remove all previous routes

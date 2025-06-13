@@ -1,54 +1,31 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import 'package:kukuo/models/currency_transaction.dart';
 import 'package:kukuo/models/currency_amount_model.dart';
+import 'package:kukuo/services/local_storage_service.dart';
 
 class FirebaseService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final LocalStorageService _localStorage = LocalStorageService();
 
   Future<void> saveCurrencyData(
       String userId, List<CurrencyAmount> currencies) async {
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('currencies')
-        .doc('current')
-        .set({
-      'currencies': currencies.map((c) => c.toJson()).toList(),
-      'lastUpdated': FieldValue.serverTimestamp(),
-    });
+    await _localStorage.saveCurrencies(currencies);
   }
 
   Future<void> saveTransaction(
       String userId, CurrencyTransaction transaction) async {
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .add({
-      ...transaction.toJson(),
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+    // Load existing transactions
+    final transactions = await loadTransactions(userId);
+    
+    // Add the new transaction
+    transactions.add(transaction);
+    
+    // Save all transactions
+    await _localStorage.saveTransactions(transactions);
   }
 
   Future<List<CurrencyTransaction>> loadTransactions(String userId) async {
     try {
-      final snapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('transactions')
-          .orderBy('timestamp',
-              descending: false) // Changed to false for ascending order
-          .get();
-
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        // Ensure timestamp is properly converted
-        if (data['timestamp'] is Timestamp) {
-          data['timestamp'] =
-              (data['timestamp'] as Timestamp).toDate().toIso8601String();
-        }
-        return CurrencyTransaction.fromJson(data);
-      }).toList();
+      return await _localStorage.loadTransactions();
     } catch (e) {
       print('Error loading transactions: $e');
       return [];
@@ -56,57 +33,30 @@ class FirebaseService {
   }
 
   Future<List<CurrencyAmount>> loadCurrencies(String userId) async {
-    final doc = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('currencies')
-        .doc('current')
-        .get();
-
-    if (!doc.exists) return [];
-
-    final data = doc.data();
-    final currenciesList = data?['currencies'] as List<dynamic>?;
-
-    if (currenciesList == null) return [];
-
-    return currenciesList.map((json) => CurrencyAmount.fromJson(json)).toList();
+    return await _localStorage.loadCurrencies();
   }
 
   Stream<List<CurrencyTransaction>> watchTransactions(String userId) {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .orderBy('timestamp', descending: false)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        if (data['timestamp'] is Timestamp) {
-          data['timestamp'] = (data['timestamp'] as Timestamp).toDate().toIso8601String();
-        }
-        return CurrencyTransaction.fromJson(data);
-      }).toList();
+    // Create a stream controller to simulate Firestore's real-time updates
+    final controller = StreamController<List<CurrencyTransaction>>();
+    
+    // Initial load
+    loadTransactions(userId).then((transactions) {
+      controller.add(transactions);
     });
+    
+    return controller.stream;
   }
 
   Stream<List<CurrencyAmount>> watchCurrencies(String userId) {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('currencies')
-        .doc('current')
-        .snapshots()
-        .map((doc) {
-      if (!doc.exists || doc.data() == null) return [];
-      
-      final data = doc.data()!;
-      final currenciesList = data['currencies'] as List<dynamic>?;
-      
-      if (currenciesList == null) return [];
-      
-      return currenciesList.map((json) => CurrencyAmount.fromJson(json)).toList();
+    // Create a stream controller to simulate Firestore's real-time updates
+    final controller = StreamController<List<CurrencyAmount>>();
+    
+    // Initial load
+    loadCurrencies(userId).then((currencies) {
+      controller.add(currencies);
     });
+    
+    return controller.stream;
   }
 }
