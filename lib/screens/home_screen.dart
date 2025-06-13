@@ -8,6 +8,7 @@ import 'package:kukuo/screens/currency_screen.dart';
 import 'package:kukuo/widgets/total_balance.dart';
 import 'package:kukuo/widgets/added_list.dart';
 import 'package:kukuo/widgets/growth_chart.dart';
+import 'package:kukuo/services/currency_preference_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onSeeAllPressed;
@@ -26,7 +27,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeData();
+    // Move initialization to post frame callback to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeData();
+    });
   }
 
   Future<void> _initializeData() async {
@@ -39,10 +43,24 @@ class _HomeScreenState extends State<HomeScreen> {
     userInputProvider.setExchangeRateProvider(exchangeRateProvider);
 
     try {
-      await Future.wait([
-        userInputProvider.loadTransactions(),
-        _loadInitialData(),
-      ]);
+      // Load saved currency preference first
+      final savedCurrency =
+          await CurrencyPreferenceService.loadSelectedCurrency();
+      setState(() {
+        _selectedLocalCurrency = savedCurrency;
+      });
+
+      // Load transactions first (this also recalculates currencies)
+      await userInputProvider.loadTransactions();
+
+      // Load exchange rates
+      await _loadInitialData();
+
+      // Recalculate balance history with current exchange rates
+      if (exchangeRateProvider.exchangeRates.isNotEmpty) {
+        await userInputProvider.recalculateHistory(
+            exchangeRateProvider.exchangeRates, _selectedLocalCurrency);
+      }
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -77,6 +95,20 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _selectedLocalCurrency = selectedCurrency;
       });
+
+      // Save the selected currency to preferences
+      await CurrencyPreferenceService.saveSelectedCurrency(selectedCurrency);
+
+      // Recalculate balance history with the new currency
+      final exchangeRateProvider =
+          Provider.of<ExchangeRateProvider>(context, listen: false);
+      final userInputProvider =
+          Provider.of<UserInputProvider>(context, listen: false);
+
+      if (exchangeRateProvider.exchangeRates.isNotEmpty) {
+        await userInputProvider.recalculateHistory(
+            exchangeRateProvider.exchangeRates, selectedCurrency);
+      }
     }
   }
 

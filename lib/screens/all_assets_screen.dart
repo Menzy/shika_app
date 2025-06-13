@@ -5,6 +5,7 @@ import 'package:kukuo/common/top_section_container.dart';
 import 'package:kukuo/providers/exchange_rate_provider.dart';
 import 'package:kukuo/providers/user_input_provider.dart';
 import 'package:kukuo/widgets/added_list.dart';
+import 'package:kukuo/services/currency_preference_service.dart';
 
 class AllAssetsScreen extends StatefulWidget {
   const AllAssetsScreen({super.key});
@@ -14,7 +15,21 @@ class AllAssetsScreen extends StatefulWidget {
 }
 
 class _AllAssetsScreenState extends State<AllAssetsScreen> {
-  final String _selectedLocalCurrency = 'USD';
+  String _selectedLocalCurrency = 'USD';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSelectedCurrency();
+  }
+
+  Future<void> _loadSelectedCurrency() async {
+    final savedCurrency =
+        await CurrencyPreferenceService.loadSelectedCurrency();
+    setState(() {
+      _selectedLocalCurrency = savedCurrency;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

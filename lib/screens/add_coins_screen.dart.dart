@@ -10,6 +10,7 @@ import 'package:kukuo/screens/currency_screen.dart';
 import 'package:expressions/expressions.dart' as expressions;
 import 'package:kukuo/utils/constants/colors.dart';
 import 'package:kukuo/widgets/custom_keyboard.dart';
+import 'package:kukuo/services/currency_preference_service.dart';
 
 class AddCoinsScreen extends StatefulWidget {
   final VoidCallback onSubmitSuccess;
@@ -319,24 +320,34 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
         final exchangeRateProvider =
             Provider.of<ExchangeRateProvider>(context, listen: false);
 
-        const String localCurrencyCode = 'USD';
-
-        if (widget.initialCurrency != null) {
-          Navigator.pop(context, updatedCurrency);
-        } else {
-          userInputProvider.addCurrency(
-            updatedCurrency,
-            exchangeRateProvider.exchangeRates,
-            localCurrencyCode,
-            isSubtraction: isSubtraction,
-          );
-          _resetFields(); // Reset fields after successful submission
-          widget.onSubmitSuccess();
-        }
+        // Use the saved local currency instead of hardcoded USD
+        _addCurrencyWithSavedPreference(
+            userInputProvider, exchangeRateProvider, updatedCurrency);
       } else {
         _showErrorSnackbar('Invalid input!');
         _clearInput();
       }
+    }
+  }
+
+  Future<void> _addCurrencyWithSavedPreference(
+      UserInputProvider userInputProvider,
+      ExchangeRateProvider exchangeRateProvider,
+      CurrencyAmount updatedCurrency) async {
+    final localCurrencyCode =
+        await CurrencyPreferenceService.loadSelectedCurrency();
+
+    if (widget.initialCurrency != null) {
+      Navigator.pop(context, updatedCurrency);
+    } else {
+      userInputProvider.addCurrency(
+        updatedCurrency,
+        exchangeRateProvider.exchangeRates,
+        localCurrencyCode,
+        isSubtraction: isSubtraction,
+      );
+      _resetFields(); // Reset fields after successful submission
+      widget.onSubmitSuccess();
     }
   }
 }

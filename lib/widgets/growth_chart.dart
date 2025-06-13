@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
 import 'package:kukuo/providers/exchange_rate_provider.dart';
+import 'package:kukuo/providers/user_input_provider.dart';
 import 'package:kukuo/common/section_heading.dart';
 import 'dart:math';
 import 'package:kukuo/models/currency_model.dart';
@@ -38,8 +39,8 @@ class _GrowthChartState extends State<GrowthChart> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ExchangeRateProvider>(
-      builder: (context, exchangeRateProvider, child) {
+    return Consumer2<ExchangeRateProvider, UserInputProvider>(
+      builder: (context, exchangeRateProvider, userInputProvider, child) {
         return Container(
           height: _chartHeight,
           padding: const EdgeInsets.all(10),
@@ -47,15 +48,18 @@ class _GrowthChartState extends State<GrowthChart> {
             color: Color(0xFF00312F),
             borderRadius: BorderRadius.all(Radius.circular(16)),
           ),
-          child: _buildChartContent(exchangeRateProvider),
+          child: _buildChartContent(exchangeRateProvider, userInputProvider),
         );
       },
     );
   }
 
-  Widget _buildChartContent(ExchangeRateProvider provider) {
-    final growthData = _calculateGrowthPercentage(provider, _selectedInterval);
-    final chartData = _prepareChartData(provider);
+  Widget _buildChartContent(ExchangeRateProvider exchangeRateProvider,
+      UserInputProvider userInputProvider) {
+    final growthData = _calculateGrowthPercentage(
+        exchangeRateProvider, userInputProvider, _selectedInterval);
+    final chartData =
+        _prepareChartData(exchangeRateProvider, userInputProvider);
 
     if (!chartData.isValid) {
       return const SizedBox.shrink();
@@ -65,7 +69,8 @@ class _GrowthChartState extends State<GrowthChart> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildHeader(growthData, _selectedInterval.label),
-        if (chartData.isValid) _buildChartView(chartData, provider),
+        if (chartData.isValid)
+          _buildChartView(chartData, exchangeRateProvider, userInputProvider),
       ],
     );
   }
@@ -133,11 +138,12 @@ class _GrowthChartState extends State<GrowthChart> {
         double lowest,
         double interval
       }) chartData,
-      ExchangeRateProvider provider) {
+      ExchangeRateProvider exchangeRateProvider,
+      UserInputProvider userInputProvider) {
     final double startTime =
-        provider.timeHistory.first.millisecondsSinceEpoch.toDouble();
+        userInputProvider.timeHistory.first.millisecondsSinceEpoch.toDouble();
     final exchangeRate =
-        provider.exchangeRates[widget.selectedLocalCurrency] ?? 1.0;
+        exchangeRateProvider.exchangeRates[widget.selectedLocalCurrency] ?? 1.0;
 
     return Expanded(
       child: Padding(
@@ -198,19 +204,20 @@ class _GrowthChartState extends State<GrowthChart> {
             lineBarsData: [
               LineChartBarData(
                 spots: List.generate(
-                  provider.balanceHistory.length,
+                  userInputProvider.balanceHistory.length,
                   (index) {
-                    double xValue =
-                        (provider.timeHistory[index].millisecondsSinceEpoch -
-                                startTime) /
-                            (1000 * 60 * 60 * 24);
+                    double xValue = (userInputProvider
+                                .timeHistory[index].millisecondsSinceEpoch -
+                            startTime) /
+                        (1000 * 60 * 60 * 24);
                     double yValue =
-                        provider.balanceHistory[index] * exchangeRate;
+                        userInputProvider.balanceHistory[index] * exchangeRate;
                     return FlSpot(xValue, yValue);
                   },
                 ),
                 isCurved: false,
-                color: _calculateGrowthPercentage(provider, _selectedInterval)
+                color: _calculateGrowthPercentage(exchangeRateProvider,
+                                userInputProvider, _selectedInterval)
                             .percentage >=
                         0
                     ? const Color(0xFFD8FE00)
@@ -222,12 +229,14 @@ class _GrowthChartState extends State<GrowthChart> {
                   show: true,
                   gradient: LinearGradient(
                     colors: [
-                      _calculateGrowthPercentage(provider, _selectedInterval)
+                      _calculateGrowthPercentage(exchangeRateProvider,
+                                      userInputProvider, _selectedInterval)
                                   .percentage >=
                               0
                           ? const Color(0xFFD8FE00).withOpacity(0.2)
                           : const Color(0xFFFF5E00).withOpacity(0.2),
-                      _calculateGrowthPercentage(provider, _selectedInterval)
+                      _calculateGrowthPercentage(exchangeRateProvider,
+                                      userInputProvider, _selectedInterval)
                                   .percentage >=
                               0
                           ? const Color(0xFFD8FE00).withOpacity(0.0)
@@ -267,8 +276,10 @@ class _GrowthChartState extends State<GrowthChart> {
   }
 
   ({bool showPercentage, double percentage}) _calculateGrowthPercentage(
-      ExchangeRateProvider exchangeRateProvider, TimeInterval interval) {
-    if (exchangeRateProvider.balanceHistory.length < 2) {
+      ExchangeRateProvider exchangeRateProvider,
+      UserInputProvider userInputProvider,
+      TimeInterval interval) {
+    if (userInputProvider.balanceHistory.length < 2) {
       return (showPercentage: false, percentage: 0.0);
     }
 
@@ -280,16 +291,16 @@ class _GrowthChartState extends State<GrowthChart> {
         DateTime.now().subtract(Duration(days: interval.days));
 
     // Get the latest value (most recent)
-    double latest = exchangeRateProvider.balanceHistory.last * exchangeRate;
+    double latest = userInputProvider.balanceHistory.last * exchangeRate;
 
     // Find the closest historical value to the target date
     double previous = 0.0;
     int closestIndex = -1;
     Duration smallestDiff = const Duration(days: 999999);
 
-    for (int i = 0; i < exchangeRateProvider.timeHistory.length; i++) {
+    for (int i = 0; i < userInputProvider.timeHistory.length; i++) {
       final timeDiff =
-          exchangeRateProvider.timeHistory[i].difference(targetDate).abs();
+          userInputProvider.timeHistory[i].difference(targetDate).abs();
       if (timeDiff < smallestDiff) {
         smallestDiff = timeDiff;
         closestIndex = i;
@@ -297,17 +308,16 @@ class _GrowthChartState extends State<GrowthChart> {
     }
 
     if (closestIndex == -1 ||
-        closestIndex == exchangeRateProvider.balanceHistory.length - 1) {
+        closestIndex == userInputProvider.balanceHistory.length - 1) {
       // If we can't find a good comparison point or it's the same as latest, fall back to previous method
-      if (exchangeRateProvider.balanceHistory.length < 2) {
+      if (userInputProvider.balanceHistory.length < 2) {
         return (showPercentage: false, percentage: 0.0);
       }
-      previous = exchangeRateProvider
-              .balanceHistory[exchangeRateProvider.balanceHistory.length - 2] *
+      previous = userInputProvider
+              .balanceHistory[userInputProvider.balanceHistory.length - 2] *
           exchangeRate;
     } else {
-      previous =
-          exchangeRateProvider.balanceHistory[closestIndex] * exchangeRate;
+      previous = userInputProvider.balanceHistory[closestIndex] * exchangeRate;
     }
 
     if (previous == 0 || previous.abs() < 0.000001) {
@@ -324,16 +334,19 @@ class _GrowthChartState extends State<GrowthChart> {
   }
 
   ({bool isValid, double highest, double lowest, double interval})
-      _prepareChartData(ExchangeRateProvider provider) {
+      _prepareChartData(ExchangeRateProvider exchangeRateProvider,
+          UserInputProvider userInputProvider) {
     // Check for minimum required data points
-    if (provider.balanceHistory.isEmpty || provider.timeHistory.isEmpty) {
+    if (userInputProvider.balanceHistory.isEmpty ||
+        userInputProvider.timeHistory.isEmpty) {
       return (isValid: false, highest: 0, lowest: 0, interval: 0);
     }
 
     final exchangeRate =
-        provider.exchangeRates[widget.selectedLocalCurrency] ?? 1.0;
-    final convertedHistory =
-        provider.balanceHistory.map((amount) => amount * exchangeRate).toList();
+        exchangeRateProvider.exchangeRates[widget.selectedLocalCurrency] ?? 1.0;
+    final convertedHistory = userInputProvider.balanceHistory
+        .map((amount) => amount * exchangeRate)
+        .toList();
 
     if (convertedHistory.isEmpty) {
       return (isValid: false, highest: 0, lowest: 0, interval: 0);
