@@ -7,7 +7,19 @@ import 'package:kukuo/common/section_heading.dart';
 import 'dart:math';
 import 'package:kukuo/models/currency_model.dart';
 
-class GrowthChart extends StatelessWidget {
+enum TimeInterval {
+  oneDay('1D', 1),
+  oneWeek('1W', 7),
+  oneMonth('1M', 30),
+  sixMonths('6M', 180),
+  oneYear('1Y', 365);
+
+  const TimeInterval(this.label, this.days);
+  final String label;
+  final int days;
+}
+
+class GrowthChart extends StatefulWidget {
   final String selectedLocalCurrency;
 
   const GrowthChart({
@@ -15,6 +27,12 @@ class GrowthChart extends StatelessWidget {
     required this.selectedLocalCurrency,
   });
 
+  @override
+  State<GrowthChart> createState() => _GrowthChartState();
+}
+
+class _GrowthChartState extends State<GrowthChart> {
+  TimeInterval _selectedInterval = TimeInterval.oneMonth;
   static const double _chartHeight = 400.0;
   static const double _maxReasonableGrowthPercentage = 1000.0;
 
@@ -36,7 +54,7 @@ class GrowthChart extends StatelessWidget {
   }
 
   Widget _buildChartContent(ExchangeRateProvider provider) {
-    final growthData = _calculateGrowthPercentage(provider);
+    final growthData = _calculateGrowthPercentage(provider, _selectedInterval);
     final chartData = _prepareChartData(provider);
 
     if (!chartData.isValid) {
@@ -46,23 +64,25 @@ class GrowthChart extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildHeader(growthData),
+        _buildHeader(growthData, _selectedInterval.label),
         if (chartData.isValid) _buildChartView(chartData, provider),
       ],
     );
   }
 
-  Widget _buildHeader(({bool showPercentage, double percentage}) growthData) {
+  Widget _buildHeader(
+      ({bool showPercentage, double percentage}) growthData, String dateRange) {
     final bool showPercentage = growthData.showPercentage;
     final double percentage = growthData.percentage;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const TSectionHeading(
+        TSectionHeading(
           title: 'Growth %',
           showActionButton: true,
-          buttonTitle: '28D',
+          buttonTitle: dateRange,
+          onPressed: _showIntervalSelectionModal,
         ),
         if (showPercentage) ...[
           Row(
@@ -116,7 +136,8 @@ class GrowthChart extends StatelessWidget {
       ExchangeRateProvider provider) {
     final double startTime =
         provider.timeHistory.first.millisecondsSinceEpoch.toDouble();
-    final exchangeRate = provider.exchangeRates[selectedLocalCurrency] ?? 1.0;
+    final exchangeRate =
+        provider.exchangeRates[widget.selectedLocalCurrency] ?? 1.0;
 
     return Expanded(
       child: Padding(
@@ -144,7 +165,7 @@ class GrowthChart extends StatelessWidget {
                       return const SizedBox.shrink();
                     }
                     final currencySymbol =
-                        Currency.getSymbolForCode(selectedLocalCurrency);
+                        Currency.getSymbolForCode(widget.selectedLocalCurrency);
 
                     return Padding(
                       padding: const EdgeInsets.only(left: 8),
@@ -189,7 +210,9 @@ class GrowthChart extends StatelessWidget {
                   },
                 ),
                 isCurved: false,
-                color: _calculateGrowthPercentage(provider).percentage >= 0
+                color: _calculateGrowthPercentage(provider, _selectedInterval)
+                            .percentage >=
+                        0
                     ? const Color(0xFFD8FE00)
                     : const Color(0xFFFF5E00),
                 barWidth: 2,
@@ -199,10 +222,14 @@ class GrowthChart extends StatelessWidget {
                   show: true,
                   gradient: LinearGradient(
                     colors: [
-                      _calculateGrowthPercentage(provider).percentage >= 0
+                      _calculateGrowthPercentage(provider, _selectedInterval)
+                                  .percentage >=
+                              0
                           ? const Color(0xFFD8FE00).withOpacity(0.2)
                           : const Color(0xFFFF5E00).withOpacity(0.2),
-                      _calculateGrowthPercentage(provider).percentage >= 0
+                      _calculateGrowthPercentage(provider, _selectedInterval)
+                                  .percentage >=
+                              0
                           ? const Color(0xFFD8FE00).withOpacity(0.0)
                           : const Color(0xFFFF5E00).withOpacity(0.0),
                     ],
@@ -219,7 +246,7 @@ class GrowthChart extends StatelessWidget {
                 getTooltipItems: (touchedSpots) {
                   return touchedSpots.map((LineBarSpot touchedSpot) {
                     final currencySymbol =
-                        Currency.getSymbolForCode(selectedLocalCurrency);
+                        Currency.getSymbolForCode(widget.selectedLocalCurrency);
 
                     return LineTooltipItem(
                       '$currencySymbol${_formatNumber(touchedSpot.y)}',
@@ -240,17 +267,48 @@ class GrowthChart extends StatelessWidget {
   }
 
   ({bool showPercentage, double percentage}) _calculateGrowthPercentage(
-      ExchangeRateProvider exchangeRateProvider) {
+      ExchangeRateProvider exchangeRateProvider, TimeInterval interval) {
     if (exchangeRateProvider.balanceHistory.length < 2) {
       return (showPercentage: false, percentage: 0.0);
     }
 
     final exchangeRate =
-        exchangeRateProvider.exchangeRates[selectedLocalCurrency] ?? 1.0;
+        exchangeRateProvider.exchangeRates[widget.selectedLocalCurrency] ?? 1.0;
+
+    // Find the comparison point based on the selected interval
+    final DateTime targetDate =
+        DateTime.now().subtract(Duration(days: interval.days));
+
+    // Get the latest value (most recent)
     double latest = exchangeRateProvider.balanceHistory.last * exchangeRate;
-    double previous = exchangeRateProvider
-            .balanceHistory[exchangeRateProvider.balanceHistory.length - 2] *
-        exchangeRate;
+
+    // Find the closest historical value to the target date
+    double previous = 0.0;
+    int closestIndex = -1;
+    Duration smallestDiff = const Duration(days: 999999);
+
+    for (int i = 0; i < exchangeRateProvider.timeHistory.length; i++) {
+      final timeDiff =
+          exchangeRateProvider.timeHistory[i].difference(targetDate).abs();
+      if (timeDiff < smallestDiff) {
+        smallestDiff = timeDiff;
+        closestIndex = i;
+      }
+    }
+
+    if (closestIndex == -1 ||
+        closestIndex == exchangeRateProvider.balanceHistory.length - 1) {
+      // If we can't find a good comparison point or it's the same as latest, fall back to previous method
+      if (exchangeRateProvider.balanceHistory.length < 2) {
+        return (showPercentage: false, percentage: 0.0);
+      }
+      previous = exchangeRateProvider
+              .balanceHistory[exchangeRateProvider.balanceHistory.length - 2] *
+          exchangeRate;
+    } else {
+      previous =
+          exchangeRateProvider.balanceHistory[closestIndex] * exchangeRate;
+    }
 
     if (previous == 0 || previous.abs() < 0.000001) {
       return (showPercentage: false, percentage: 0.0);
@@ -272,7 +330,8 @@ class GrowthChart extends StatelessWidget {
       return (isValid: false, highest: 0, lowest: 0, interval: 0);
     }
 
-    final exchangeRate = provider.exchangeRates[selectedLocalCurrency] ?? 1.0;
+    final exchangeRate =
+        provider.exchangeRates[widget.selectedLocalCurrency] ?? 1.0;
     final convertedHistory =
         provider.balanceHistory.map((amount) => amount * exchangeRate).toList();
 
@@ -290,6 +349,63 @@ class GrowthChart extends StatelessWidget {
       highest: highest,
       lowest: lowest,
       interval: interval
+    );
+  }
+
+  void _showIntervalSelectionModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF00312F),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Select Time Interval',
+                style: TextStyle(
+                  color: Color(0xFFFAFFB5),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ...TimeInterval.values.map((interval) {
+                return ListTile(
+                  title: Text(
+                    interval.label,
+                    style: TextStyle(
+                      color: _selectedInterval == interval
+                          ? const Color(0xFFD8FE00)
+                          : const Color(0xFF008F8A),
+                      fontWeight: _selectedInterval == interval
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                  trailing: _selectedInterval == interval
+                      ? const Icon(
+                          Icons.check,
+                          color: Color(0xFFD8FE00),
+                        )
+                      : null,
+                  onTap: () {
+                    setState(() {
+                      _selectedInterval = interval;
+                    });
+                    Navigator.pop(context);
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 }

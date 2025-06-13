@@ -20,7 +20,6 @@ dependencies:
   intl: ^0.19.0
   math_expressions: ^2.6.0
   expressions: ^0.2.5+1
-  flutter_dotenv: ^5.1.0
   iconsax: ^0.0.8
   flutter_native_splash: ^2.4.1
   fl_chart: ^0.69.0
