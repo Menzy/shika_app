@@ -35,7 +35,6 @@ class GrowthChart extends StatefulWidget {
 class _GrowthChartState extends State<GrowthChart> {
   TimeInterval _selectedInterval = TimeInterval.oneMonth;
   static const double _chartHeight = 400.0;
-  static const double _maxReasonableGrowthPercentage = 1000.0;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +92,7 @@ class _GrowthChartState extends State<GrowthChart> {
           Row(
             children: [
               Text(
-                '${percentage.toStringAsFixed(2)}%',
+                '${percentage.round()}%',
                 style: const TextStyle(
                   fontSize: 25,
                   color: Color(0xFFFAFFB5),
@@ -281,49 +280,36 @@ class _GrowthChartState extends State<GrowthChart> {
       return (showPercentage: false, percentage: 0.0);
     }
 
-    // Balance history is already in local currency, no need to convert again
-
-    // Find the comparison point based on the selected interval
-    final DateTime targetDate =
-        DateTime.now().subtract(Duration(days: interval.days));
-
-    // Get the latest value (most recent) - already in local currency
+    // Get the latest value (most recent)
     double latest = userInputProvider.balanceHistory.last;
+    double previous;
 
-    // Find the closest historical value to the target date
-    double previous = 0.0;
-    int closestIndex = -1;
-    Duration smallestDiff = const Duration(days: 999999);
-
-    for (int i = 0; i < userInputProvider.timeHistory.length; i++) {
-      final timeDiff =
-          userInputProvider.timeHistory[i].difference(targetDate).abs();
-      if (timeDiff < smallestDiff) {
-        smallestDiff = timeDiff;
-        closestIndex = i;
-      }
-    }
-
-    if (closestIndex == -1 ||
-        closestIndex == userInputProvider.balanceHistory.length - 1) {
-      // If we can't find a good comparison point or it's the same as latest, fall back to previous method
-      if (userInputProvider.balanceHistory.length < 2) {
-        return (showPercentage: false, percentage: 0.0);
-      }
-      previous = userInputProvider
-          .balanceHistory[userInputProvider.balanceHistory.length - 2];
+    // For simple comparison, use the previous entry in the list
+    if (userInputProvider.balanceHistory.length >= 2) {
+      previous = userInputProvider.balanceHistory[userInputProvider.balanceHistory.length - 2];
     } else {
-      previous = userInputProvider.balanceHistory[closestIndex];
-    }
-
-    if (previous == 0 || previous.abs() < 0.000001) {
       return (showPercentage: false, percentage: 0.0);
     }
 
-    double percentage = ((latest - previous) / previous) * 100;
+    // Handle edge cases for previous value
+    if (previous == 0) {
+      // If previous is exactly 0, any positive change is infinite growth
+      // Show a reasonable percentage or 100% for positive changes
+      if (latest > 0) {
+        return (showPercentage: true, percentage: 100.0);
+      } else {
+        return (showPercentage: true, percentage: 0.0);
+      }
+    }
 
-    if (percentage.abs() > _maxReasonableGrowthPercentage) {
-      return (showPercentage: false, percentage: 0.0);
+    // Calculate percentage change
+    double percentage = ((latest - previous) / previous.abs()) * 100;
+
+    // Cap extreme percentages to reasonable values
+    if (percentage > 1000) {
+      percentage = 1000;
+    } else if (percentage < -100) {
+      percentage = -100;
     }
 
     return (showPercentage: true, percentage: percentage);
