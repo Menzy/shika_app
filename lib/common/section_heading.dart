@@ -20,23 +20,31 @@ class TSectionHeading extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: const TextStyle(color: Color(0xFF008F8A), fontSize: 15),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (showActionButton)
-          TextButton(
-            onPressed: onPressed,
-            child: Text(
-              buttonTitle,
-              style: const TextStyle(
-                  color: Color(0xFFD8FE00),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700),
-            ),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(color: Color(0xFF008F8A), fontSize: 15),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
+        ),
+        showActionButton
+            ? TextButton(
+                onPressed: onPressed,
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  buttonTitle,
+                  style: const TextStyle(
+                      color: Color(0xFFD8FE00),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700),
+                ),
+              )
+            : const SizedBox.shrink(),
       ],
     );
   }
