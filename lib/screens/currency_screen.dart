@@ -35,7 +35,16 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: TTopSectionContainer(
-        title: Container(
+        title: const Text(
+          'Select Currency',
+          style: TextStyle(
+            fontFamily: 'Gazpacho',
+            fontSize: 30,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFFD8FE00),
+          ),
+        ),
+        fixedContent: Container(
           height: 50,
           padding: const EdgeInsets.only(left: 8),
           decoration: BoxDecoration(
@@ -53,24 +62,25 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                      child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) => _filterCurrencies(),
-                    style: const TextStyle(
-                      color: Colors.white, // Changed text color to black
-                      fontSize: 16,
-                    ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'Search currency',
-                      hintStyle: TextStyle(
-                        color: Colors.grey,
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (value) => _filterCurrencies(),
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontSize: 16,
                       ),
-                      fillColor: Colors.transparent, // Removed background color
-                      filled: true,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Search currency',
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 16,
+                        ),
+                        fillColor: Colors.transparent,
+                        filled: true,
+                      ),
                     ),
-                  )),
+                  ),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: const Icon(
@@ -89,40 +99,44 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
           ),
         ),
         child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
-              color: Color(0xFF00312F),
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-            ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _filteredCurrencies.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF001817),
-
-                    borderRadius: BorderRadius.circular(
-                        10), // Rounds the corners of the tile
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: const BoxDecoration(
+            color: Color(0xFF00312F),
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+          ),
+          child: ListView.builder(
+            padding: const EdgeInsets.only(top: 16, bottom: 16),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _filteredCurrencies.length,
+            itemBuilder: (context, index) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF001817),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: ListTile(
+                  leading: Text(
+                    _filteredCurrencies[index].flag,
+                    style: const TextStyle(fontSize: 29),
                   ),
-                  child: ListTile(
-                    leading: Text(
-                      _filteredCurrencies[index].flag,
-                      style: const TextStyle(fontSize: 29),
+                  title: Text(
+                    _filteredCurrencies[index].code,
+                    style: const TextStyle(
+                      color: Color(0xFFFAFFB5),
+                      fontSize: 20,
                     ),
-                    title: Text(
-                      _filteredCurrencies[index].code,
-                      style: const TextStyle(
-                          color: Color(0xFFFAFFB5), fontSize: 20),
-                    ),
-                    onTap: () =>
-                        Navigator.pop(context, _filteredCurrencies[index].code),
                   ),
-                );
-              },
-            )),
+                  onTap: () => Navigator.pop(
+                    context,
+                    _filteredCurrencies[index].code,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }

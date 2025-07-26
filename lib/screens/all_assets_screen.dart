@@ -52,7 +52,7 @@ class _AllAssetsScreenState extends State<AllAssetsScreen> {
 
             return SingleChildScrollView(
               child: Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(
                   color: Color(0xFF00312F),
                   borderRadius: BorderRadius.all(Radius.circular(16)),
@@ -64,7 +64,7 @@ class _AllAssetsScreenState extends State<AllAssetsScreen> {
                       title: 'All Assets',
                       showActionButton: false,
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 8),
                     AddedList(
                       currencies:
                           consolidatedCurrencies, // Use consolidated currencies

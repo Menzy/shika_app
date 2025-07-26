@@ -6,6 +6,7 @@ class TTopSectionContainer extends StatelessWidget {
   final Widget child;
   final Widget title; // Title as a widget
   final Widget? subtitle; // Optional subtitle as a widget
+  final Widget? fixedContent; // New: Fixed content that doesn't scroll
   final double imageHeight;
 
   const TTopSectionContainer({
@@ -13,6 +14,7 @@ class TTopSectionContainer extends StatelessWidget {
     required this.child,
     required this.title, // Title as a widget
     this.subtitle, // Optional subtitle as a widget
+    this.fixedContent, // New: Fixed content that doesn't scroll
     this.imageHeight = 160, // Default height for the image
   });
 
@@ -69,18 +71,25 @@ class TTopSectionContainer extends StatelessWidget {
                 topRight: Radius.circular(30),
               ),
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TopSectionTitle(
-                    title: title, // Title passed as a widget
-                  ),
-                  const SizedBox(
-                      height: 35), // Spacing before the child content
-                  child,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TopSectionTitle(
+                  title: title, // Title passed as a widget
+                ),
+                const SizedBox(height: 35), // Spacing before content
+                // Fixed content that doesn't scroll (if provided)
+                if (fixedContent != null) ...[
+                  fixedContent!,
+                  const SizedBox(height: 16),
                 ],
-              ),
+                // Scrollable content
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: child,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

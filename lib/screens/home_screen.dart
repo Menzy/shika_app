@@ -144,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
             showActionButton: true,
             onPressed: widget.onSeeAllPressed,
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 8),
           AddedList(
             currencies:
                 userInputProvider.getConsolidatedCurrencies().take(4).toList(),

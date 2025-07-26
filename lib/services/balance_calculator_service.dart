@@ -15,7 +15,15 @@ class BalanceCalculatorService {
 
       if (rate != null) {
         final localRate = exchangeRates[localCurrencyCode] ?? 1.0;
-        total += amount / rate * localRate;
+
+        // Convert to USD first (assuming rates are USD-based), then to local currency
+        // If rate is FROM USD TO currency, then: USD = amount / rate
+        // If rate is FROM currency TO USD, then: USD = amount * rate
+        // Based on typical API behavior, rates are usually FROM USD TO currency
+        double amountInUSD = amount / rate;
+        double amountInLocalCurrency = amountInUSD * localRate;
+
+        total += amountInLocalCurrency;
       }
     }
 

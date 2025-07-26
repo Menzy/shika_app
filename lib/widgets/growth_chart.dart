@@ -142,8 +142,6 @@ class _GrowthChartState extends State<GrowthChart> {
       UserInputProvider userInputProvider) {
     final double startTime =
         userInputProvider.timeHistory.first.millisecondsSinceEpoch.toDouble();
-    final exchangeRate =
-        exchangeRateProvider.exchangeRates[widget.selectedLocalCurrency] ?? 1.0;
 
     return Expanded(
       child: Padding(
@@ -210,8 +208,8 @@ class _GrowthChartState extends State<GrowthChart> {
                                 .timeHistory[index].millisecondsSinceEpoch -
                             startTime) /
                         (1000 * 60 * 60 * 24);
-                    double yValue =
-                        userInputProvider.balanceHistory[index] * exchangeRate;
+                    double yValue = userInputProvider.balanceHistory[index];
+                    // Note: Balance history is already converted to local currency
                     return FlSpot(xValue, yValue);
                   },
                 ),
@@ -283,15 +281,14 @@ class _GrowthChartState extends State<GrowthChart> {
       return (showPercentage: false, percentage: 0.0);
     }
 
-    final exchangeRate =
-        exchangeRateProvider.exchangeRates[widget.selectedLocalCurrency] ?? 1.0;
+    // Balance history is already in local currency, no need to convert again
 
     // Find the comparison point based on the selected interval
     final DateTime targetDate =
         DateTime.now().subtract(Duration(days: interval.days));
 
-    // Get the latest value (most recent)
-    double latest = userInputProvider.balanceHistory.last * exchangeRate;
+    // Get the latest value (most recent) - already in local currency
+    double latest = userInputProvider.balanceHistory.last;
 
     // Find the closest historical value to the target date
     double previous = 0.0;
@@ -314,10 +311,9 @@ class _GrowthChartState extends State<GrowthChart> {
         return (showPercentage: false, percentage: 0.0);
       }
       previous = userInputProvider
-              .balanceHistory[userInputProvider.balanceHistory.length - 2] *
-          exchangeRate;
+          .balanceHistory[userInputProvider.balanceHistory.length - 2];
     } else {
-      previous = userInputProvider.balanceHistory[closestIndex] * exchangeRate;
+      previous = userInputProvider.balanceHistory[closestIndex];
     }
 
     if (previous == 0 || previous.abs() < 0.000001) {
@@ -342,11 +338,8 @@ class _GrowthChartState extends State<GrowthChart> {
       return (isValid: false, highest: 0, lowest: 0, interval: 0);
     }
 
-    final exchangeRate =
-        exchangeRateProvider.exchangeRates[widget.selectedLocalCurrency] ?? 1.0;
-    final convertedHistory = userInputProvider.balanceHistory
-        .map((amount) => amount * exchangeRate)
-        .toList();
+    // Balance history is already in local currency, no need to convert again
+    final convertedHistory = userInputProvider.balanceHistory;
 
     if (convertedHistory.isEmpty) {
       return (isValid: false, highest: 0, lowest: 0, interval: 0);
