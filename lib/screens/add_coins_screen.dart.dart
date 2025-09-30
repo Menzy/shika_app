@@ -208,14 +208,11 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
                         padding: const EdgeInsets.all(10.0),
                         child: GestureDetector(
                           onTap: () async {
-                            final selectedCurrency = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const CurrencyScreen(),
-                              ),
-                            );
+                            if (!mounted) return;
+                            
+                            final selectedCurrency = await showCurrencyBottomSheet(context);
 
-                            if (selectedCurrency != null) {
+                            if (selectedCurrency != null && mounted) {
                               setState(() {
                                 _selectedCurrency = selectedCurrency;
                               });

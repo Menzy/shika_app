@@ -87,14 +87,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _selectLocalCurrency() async {
-    final selectedCurrency = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const CurrencyScreen(),
-      ),
-    );
+    if (!mounted) return;
+    
+    final selectedCurrency = await showCurrencyBottomSheet(context);
 
-    if (selectedCurrency != null) {
+    if (selectedCurrency != null && mounted) {
       setState(() {
         _selectedLocalCurrency = selectedCurrency;
       });
