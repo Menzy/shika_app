@@ -85,7 +85,7 @@ class _BalanceChartState extends State<BalanceChart> {
                       ),
                       const SizedBox(width: 8),
                       Icon(
-                        isPositive ? Icons.trending_up : Icons.trending_down,
+                        isPositive ? Icons.arrow_upward : Icons.arrow_downward,
                         color: isPositive ? Colors.green : const Color(0xFFFF6B47),
                         size: 24,
                       ),

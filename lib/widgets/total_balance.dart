@@ -39,7 +39,7 @@ class TotalBalance extends StatelessWidget {
             ),
           ),
           const Text(
-            'Total Balance',
+            'Total Balance:',
             style: TextStyle(color: Color(0xFFF8FF99), fontSize: 12),
           ),
         ],
