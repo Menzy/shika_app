@@ -7,7 +7,9 @@ import 'package:kukuo/providers/user_input_provider.dart';
 import 'package:kukuo/screens/currency_screen.dart';
 import 'package:kukuo/widgets/total_balance.dart';
 import 'package:kukuo/widgets/added_list.dart';
+import 'package:kukuo/widgets/balance_chart.dart';
 import 'package:kukuo/services/currency_preference_service.dart';
+import 'package:kukuo/models/currency_model.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onSeeAllPressed;
@@ -211,6 +213,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   return userInputProvider.currencies.isEmpty
                       ? _buildWelcomeMessage()
                       : _buildAssetsSection(userInputProvider);
+                },
+              ),
+              const SizedBox(height: 16),
+              Consumer<UserInputProvider>(
+                builder: (context, userInputProvider, _) {
+                  return userInputProvider.currencies.isEmpty
+                      ? const SizedBox.shrink()
+                      : BalanceChart(
+                          balanceHistory: userInputProvider.balanceHistory,
+                          timeHistory: userInputProvider.timeHistory,
+                          currencySymbol: Currency.getSymbolForCode(_selectedLocalCurrency),
+                        );
                 },
               ),
             ],
