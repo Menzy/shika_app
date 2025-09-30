@@ -69,6 +69,29 @@ class _NavigationMenuState extends State<NavigationMenu> {
             index: _selectedIndex,
             children: _screens,
           ),
+          // Gradient overlay to mask content below the nav bar
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: Container(
+                height: 80,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x00001817),
+                      Color(0xFF001817),
+                      Color(0xFF001817),
+                    ],
+                    stops: [0.0, 0.6, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
           Positioned(
             bottom: 30,
             left: (MediaQuery.of(context).size.width - pillWidth) / 2,
