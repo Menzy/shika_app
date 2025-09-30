@@ -65,14 +65,28 @@ class _AllAssetsScreenState extends State<AllAssetsScreen> {
                       showActionButton: false,
                     ),
                     const SizedBox(height: 8),
-                    AddedList(
-                      currencies:
-                          consolidatedCurrencies, // Use consolidated currencies
-                      selectedLocalCurrency: _selectedLocalCurrency,
-                      exchangeRateProvider:
-                          Provider.of<ExchangeRateProvider>(context),
-                      isAllAssetsScreen: true, // Add this parameter
-                    ),
+                    if (consolidatedCurrencies.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32.0),
+                          child: Text(
+                            'No assets added yet',
+                            style: TextStyle(
+                              color: Color(0xFFFAFFB5),
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      AddedList(
+                        currencies:
+                            consolidatedCurrencies, // Use consolidated currencies
+                        selectedLocalCurrency: _selectedLocalCurrency,
+                        exchangeRateProvider:
+                            Provider.of<ExchangeRateProvider>(context),
+                        isAllAssetsScreen: true, // Add this parameter
+                      ),
                   ],
                 ),
               ),

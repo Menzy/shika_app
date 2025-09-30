@@ -84,11 +84,14 @@ class PaperTrailScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   if (transactions.isEmpty)
                     const Center(
-                      child: Text(
-                        'No transactions yet',
-                        style: TextStyle(
-                          color: Color(0xFFFAFFB5),
-                          fontSize: 16,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32.0),
+                        child: Text(
+                          'No transactions yet',
+                          style: TextStyle(
+                            color: Color(0xFFFAFFB5),
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     )
