@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:kukuo/common/top_section_container.dart';
 import 'package:kukuo/models/currency_transaction.dart';
 
@@ -49,12 +50,10 @@ class CurrencyDetailScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      transactions
-                          .fold<double>(
-                            0,
-                            (sum, transaction) => sum + transaction.amount,
-                          )
-                          .toString(),
+                      _formatNumber(transactions.fold<double>(
+                        0,
+                        (sum, transaction) => sum + transaction.amount,
+                      )),
                       style: const TextStyle(
                         color: Color(0xFFFAFFB5),
                         fontSize: 20,
@@ -95,7 +94,7 @@ class CurrencyDetailScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${transaction.amount > 0 ? '+' : ''}${transaction.amount}',
+                              '${transaction.amount > 0 ? '+' : ''}${_formatNumber(transaction.amount)}',
                               style: TextStyle(
                                 color: transaction.amount > 0
                                     ? Colors.green
@@ -133,5 +132,10 @@ class CurrencyDetailScreen extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatNumber(double number) {
+    final formatter = NumberFormat('#,##0.##');
+    return formatter.format(number);
   }
 }

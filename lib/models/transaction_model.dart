@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class Transaction {
   final String currencyCode;
@@ -16,7 +17,10 @@ class Transaction {
   Color get color =>
       type == 'Addition' ? const Color(0xFFFAFFB5) : const Color(0xFFFF5E00);
 
-  String get formattedAmount => amount.abs().toStringAsFixed(2);
+  String get formattedAmount {
+    final formatter = NumberFormat('#,##0.##');
+    return formatter.format(amount.abs());
+  }
 
   Map<String, dynamic> toJson() => {
         'currencyCode': currencyCode,
