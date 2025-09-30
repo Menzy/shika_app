@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CurrencyPreferenceService {
@@ -10,7 +11,7 @@ class CurrencyPreferenceService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_selectedCurrencyKey, currencyCode);
     } catch (e) {
-      print('Error saving selected currency: $e');
+      debugPrint('Error saving selected currency: $e');
     }
   }
 
@@ -21,7 +22,7 @@ class CurrencyPreferenceService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_selectedCurrencyKey) ?? _defaultCurrency;
     } catch (e) {
-      print('Error loading selected currency: $e');
+      debugPrint('Error loading selected currency: $e');
       return _defaultCurrency;
     }
   }
@@ -32,7 +33,7 @@ class CurrencyPreferenceService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.containsKey(_selectedCurrencyKey);
     } catch (e) {
-      print('Error checking saved currency: $e');
+      debugPrint('Error checking saved currency: $e');
       return false;
     }
   }

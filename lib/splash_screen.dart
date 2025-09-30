@@ -22,9 +22,20 @@ class _SplashScreenState extends State<SplashScreen> {
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() => _showSplash = false);
-        context.read<AuthProvider>().checkAuthState();
+        // Check auth and auto-login if needed
+        _initializeAuth();
       }
     });
+  }
+
+  Future<void> _initializeAuth() async {
+    final authProvider = context.read<AuthProvider>();
+    await authProvider.checkAuthState();
+
+    // Auto-login with default user if not already logged in
+    if (mounted && !authProvider.isLoggedIn) {
+      await authProvider.autoLogin();
+    }
   }
 
   @override
@@ -41,15 +52,6 @@ class _SplashScreenState extends State<SplashScreen> {
       );
     }
 
-    // Skip authentication and go directly to the main app
-    // We'll automatically log in a default user in the background
-    Future.microtask(() {
-      // Auto-login with default user if not already logged in
-      if (!context.read<AuthProvider>().isLoggedIn) {
-        context.read<AuthProvider>().autoLogin();
-      }
-    });
-    
     // Always return the NavigationMenu
     return const NavigationMenu();
   }

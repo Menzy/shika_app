@@ -2,7 +2,7 @@ class CurrencyTransaction {
   final String currencyCode;
   final double amount;
   final DateTime timestamp;
-  final String type;  // 'addition', 'subtraction', etc.
+  final String type; // 'addition', 'subtraction', etc.
 
   CurrencyTransaction({
     required this.currencyCode,
@@ -12,11 +12,11 @@ class CurrencyTransaction {
   });
 
   Map<String, dynamic> toJson() => {
-    'currencyCode': currencyCode,
-    'amount': amount,
-    'timestamp': timestamp.toIso8601String(),
-    'type': type,
-  };
+        'currencyCode': currencyCode,
+        'amount': amount,
+        'timestamp': timestamp.toIso8601String(),
+        'type': type,
+      };
 
   factory CurrencyTransaction.fromJson(Map<String, dynamic> json) {
     return CurrencyTransaction(

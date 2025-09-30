@@ -78,7 +78,7 @@ class UserInputProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print('Error loading currencies: $e');
+      debugPrint('Error loading currencies: $e');
       rethrow;
     }
   }
@@ -120,7 +120,7 @@ class UserInputProvider with ChangeNotifier {
 
       return true;
     } catch (e) {
-      print('Error adding/subtracting currency: $e');
+      debugPrint('Error adding/subtracting currency: $e');
       return false;
     }
   }
@@ -153,7 +153,7 @@ class UserInputProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print('Error loading transactions: $e');
+      debugPrint('Error loading transactions: $e');
       rethrow;
     }
   }
@@ -186,7 +186,7 @@ class UserInputProvider with ChangeNotifier {
       _currencyStreamController.add(_currencies);
       notifyListeners();
     } catch (e) {
-      print('Error saving currencies: $e');
+      debugPrint('Error saving currencies: $e');
       rethrow;
     }
   }

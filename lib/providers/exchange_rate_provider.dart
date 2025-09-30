@@ -26,7 +26,7 @@ class ExchangeRateProvider with ChangeNotifier {
       _error = null;
     } catch (e) {
       _error = 'Failed to fetch exchange rates: $e';
-      print('Error fetching exchange rates: $e');
+      debugPrint('Error fetching exchange rates: $e');
       await _loadBalanceHistory(); // Load cached balance history even if rates fail
     } finally {
       _isLoading = false;
@@ -42,7 +42,7 @@ class ExchangeRateProvider with ChangeNotifier {
         _timeHistory = historyData.times;
       }
     } catch (e) {
-      print('Error loading balance history: $e');
+      debugPrint('Error loading balance history: $e');
     }
   }
 

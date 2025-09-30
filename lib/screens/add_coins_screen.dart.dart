@@ -86,7 +86,7 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
         throw Exception('Invalid result type');
       }
     } catch (e) {
-      print('Error in expression parsing or evaluation: $e');
+      debugPrint('Error in expression parsing or evaluation: $e');
       return null;
     }
   }
@@ -336,6 +336,8 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
       CurrencyAmount updatedCurrency) async {
     final localCurrencyCode =
         await CurrencyPreferenceService.loadSelectedCurrency();
+
+    if (!mounted) return;
 
     if (widget.initialCurrency != null) {
       Navigator.pop(context, updatedCurrency);

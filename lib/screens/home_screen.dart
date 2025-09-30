@@ -70,8 +70,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadInitialData() async {
     try {
+      if (!mounted) return;
       await Provider.of<ExchangeRateProvider>(context, listen: false)
           .fetchExchangeRates();
+      if (!mounted) return;
       await Provider.of<UserInputProvider>(context, listen: false)
           .loadCurrencies();
     } catch (e) {
@@ -98,6 +100,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Save the selected currency to preferences
       await CurrencyPreferenceService.saveSelectedCurrency(selectedCurrency);
+
+      if (!mounted) return;
 
       // Recalculate balance history with the new currency
       final exchangeRateProvider =

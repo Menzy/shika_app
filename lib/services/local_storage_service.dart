@@ -34,7 +34,9 @@ class LocalStorageService {
     final storedTransactions = prefs.getString(_transactionsKey);
     if (storedTransactions != null) {
       final List<dynamic> jsonList = jsonDecode(storedTransactions);
-      return jsonList.map((json) => CurrencyTransaction.fromJson(json)).toList();
+      return jsonList
+          .map((json) => CurrencyTransaction.fromJson(json))
+          .toList();
     }
     return [];
   }
@@ -66,10 +68,8 @@ class LocalStorageService {
       List<double> balances, List<DateTime> times) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_balanceHistoryKey, jsonEncode(balances));
-    await prefs.setString(
-        _timeHistoryKey,
-        jsonEncode(
-            times.map((time) => time.toIso8601String()).toList()));
+    await prefs.setString(_timeHistoryKey,
+        jsonEncode(times.map((time) => time.toIso8601String()).toList()));
   }
 
   // Exchange Rate Operations

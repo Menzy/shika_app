@@ -6,13 +6,13 @@ import 'package:kukuo/screens/login_screen.dart';
 class AuthProvider extends ChangeNotifier {
   static const String _userKey = 'user_data';
   static const String _isLoggedInKey = 'is_logged_in';
-  
+
   bool _isLoading = false;
   Map<String, dynamic>? _user;
   String? _username;
   String? _email;
   String? _userId;
-  
+
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _user != null;
   String? get username => _username;
@@ -27,11 +27,12 @@ class AuthProvider extends ChangeNotifier {
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final isLoggedIn = prefs.getBool(_isLoggedInKey) ?? false;
-    
+
     if (isLoggedIn) {
       final userData = prefs.getString(_userKey);
       if (userData != null) {
-        _user = Map<String, dynamic>.from(Map<String, dynamic>.from(await _parseUserData(userData)));
+        _user = Map<String, dynamic>.from(
+            Map<String, dynamic>.from(await _parseUserData(userData)));
         _username = _user!['username'];
         _email = _user!['email'];
         _userId = _user!['userId'];
@@ -39,12 +40,12 @@ class AuthProvider extends ChangeNotifier {
       }
     }
   }
-  
+
   Future<Map<String, dynamic>> _parseUserData(String userData) async {
     // Simple parsing of the stored JSON string
     return Map<String, dynamic>.from(await jsonDecode(userData));
   }
-  
+
   Future<void> _saveUserData() async {
     if (_user != null) {
       final prefs = await SharedPreferences.getInstance();
@@ -64,13 +65,13 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   /// Automatically logs in a default user without requiring credentials
   /// This is used to bypass the login screen
   Future<void> autoLogin() async {
     _isLoading = true;
     notifyListeners();
-    
+
     try {
       // Create a default user
       _user = {
@@ -78,11 +79,11 @@ class AuthProvider extends ChangeNotifier {
         'email': 'default@example.com',
         'userId': 'default-user-id',
       };
-      
+
       _username = _user!['username'];
       _email = _user!['email'];
       _userId = _user!['userId'];
-      
+
       // Save the user data to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userKey, jsonEncode(_user));
@@ -108,7 +109,7 @@ class AuthProvider extends ChangeNotifier {
       // Check if email already exists
       final prefs = await SharedPreferences.getInstance();
       final userData = prefs.getString(_userKey);
-      
+
       if (userData != null) {
         final existingUser = await _parseUserData(userData);
         if (existingUser['email'] == email) {
@@ -118,10 +119,10 @@ class AuthProvider extends ChangeNotifier {
 
       // Capitalize first letter of username
       final capitalizedUsername = _capitalizeFirstLetter(username);
-      
+
       // Generate a unique user ID
       final userId = DateTime.now().millisecondsSinceEpoch.toString();
-      
+
       // Create user data
       _user = {
         'userId': userId,
@@ -130,14 +131,14 @@ class AuthProvider extends ChangeNotifier {
         'password': password, // In a real app, you would hash this
         'createdAt': DateTime.now().toIso8601String(),
       };
-      
+
       _username = capitalizedUsername;
       _email = email;
       _userId = userId;
-      
+
       // Save user data
       await _saveUserData();
-      
+
       return null;
     } catch (e) {
       return e.toString();
@@ -154,28 +155,28 @@ class AuthProvider extends ChangeNotifier {
 
       final prefs = await SharedPreferences.getInstance();
       final userData = prefs.getString(_userKey);
-      
+
       if (userData == null) {
         return 'No account found with this email';
       }
-      
+
       final storedUser = await _parseUserData(userData);
-      
+
       if (storedUser['email'] != email) {
         return 'No account found with this email';
       }
-      
+
       if (storedUser['password'] != password) {
         return 'Invalid password';
       }
-      
+
       _user = storedUser;
       _username = storedUser['username'];
       _email = storedUser['email'];
       _userId = storedUser['userId'];
-      
+
       await prefs.setBool(_isLoggedInKey, true);
-      
+
       return null;
     } catch (e) {
       return e.toString();
@@ -189,13 +190,13 @@ class AuthProvider extends ChangeNotifier {
     try {
       _isLoading = true;
       notifyListeners();
-      
+
       // Since we're removing Firebase, we'll simulate Google sign-in
       // In a real app, you would implement proper OAuth flow
-      
+
       return 'Google Sign In is not available in this version';
     } catch (e) {
-      print('Google sign in error: $e');
+      debugPrint('Google sign in error: $e');
       return e.toString();
     } finally {
       _isLoading = false;

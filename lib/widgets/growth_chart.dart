@@ -153,7 +153,7 @@ class _GrowthChartState extends State<GrowthChart> {
               drawVerticalLine: false,
               getDrawingHorizontalLine: (value) {
                 return FlLine(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   strokeWidth: 0.5,
                 );
               },
@@ -230,14 +230,14 @@ class _GrowthChartState extends State<GrowthChart> {
                                       userInputProvider, _selectedInterval)
                                   .percentage >=
                               0
-                          ? const Color(0xFFD8FE00).withOpacity(0.2)
-                          : const Color(0xFFFF5E00).withOpacity(0.2),
+                          ? const Color(0xFFD8FE00).withValues(alpha: 0.2)
+                          : const Color(0xFFFF5E00).withValues(alpha: 0.2),
                       _calculateGrowthPercentage(exchangeRateProvider,
                                       userInputProvider, _selectedInterval)
                                   .percentage >=
                               0
-                          ? const Color(0xFFD8FE00).withOpacity(0.0)
-                          : const Color(0xFFFF5E00).withOpacity(0.0),
+                          ? const Color(0xFFD8FE00).withValues(alpha: 0.0)
+                          : const Color(0xFFFF5E00).withValues(alpha: 0.0),
                     ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
@@ -286,7 +286,8 @@ class _GrowthChartState extends State<GrowthChart> {
 
     // For simple comparison, use the previous entry in the list
     if (userInputProvider.balanceHistory.length >= 2) {
-      previous = userInputProvider.balanceHistory[userInputProvider.balanceHistory.length - 2];
+      previous = userInputProvider
+          .balanceHistory[userInputProvider.balanceHistory.length - 2];
     } else {
       return (showPercentage: false, percentage: 0.0);
     }

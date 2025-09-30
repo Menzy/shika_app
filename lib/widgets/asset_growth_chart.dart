@@ -62,7 +62,7 @@ class AssetGrowthChart extends StatelessWidget {
                     color: (growthPercentage >= 0
                             ? const Color(0xFFD8FE00)
                             : const Color(0xFFFF5E00))
-                        .withOpacity(0.1),
+                        .withValues(alpha: 0.1),
                   ),
                 ),
               ],

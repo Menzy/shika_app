@@ -5,7 +5,7 @@ class TopSectionTitle extends StatelessWidget {
 
   const TopSectionTitle({
     super.key,
-    required this.title,    // Title as a widget
+    required this.title, // Title as a widget
   });
 
   @override
