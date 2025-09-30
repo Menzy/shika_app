@@ -5,7 +5,6 @@ import 'package:kukuo/providers/user_input_provider.dart';
 import 'package:kukuo/screens/currency_details_screen.dart';
 import 'package:kukuo/widgets/currency_formatter.dart';
 import 'package:provider/provider.dart';
-import 'package:kukuo/widgets/asset_growth_chart.dart';
 
 class AddedList extends StatefulWidget {
   final List<CurrencyAmount> currencies;
@@ -97,26 +96,7 @@ class _AddedListState extends State<AddedList> {
                   ),
                 ),
                 // Only show expanded content in All Assets Screen
-                if (widget.isAllAssetsScreen && isExpanded)
-                  Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Consumer<UserInputProvider>(
-                      builder: (context, provider, _) {
-                        final transactions =
-                            provider.getTransactionsByCurrency(currency.code);
-                        final amounts =
-                            transactions.map((t) => t.amount).toList();
-                        final timestamps =
-                            transactions.map((t) => t.timestamp).toList();
 
-                        return AssetGrowthChart(
-                          currencyCode: currency.code,
-                          amounts: amounts,
-                          timestamps: timestamps,
-                        );
-                      },
-                    ),
-                  ),
               ],
             ),
           ),

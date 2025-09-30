@@ -7,7 +7,6 @@ import 'package:kukuo/providers/user_input_provider.dart';
 import 'package:kukuo/screens/currency_screen.dart';
 import 'package:kukuo/widgets/total_balance.dart';
 import 'package:kukuo/widgets/added_list.dart';
-import 'package:kukuo/widgets/growth_chart.dart';
 import 'package:kukuo/services/currency_preference_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -212,16 +211,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   return userInputProvider.currencies.isEmpty
                       ? _buildWelcomeMessage()
                       : _buildAssetsSection(userInputProvider);
-                },
-              ),
-              const SizedBox(height: 25),
-              Consumer<UserInputProvider>(
-                builder: (context, userInputProvider, _) {
-                  return userInputProvider.currencies.isEmpty
-                      ? const SizedBox.shrink()
-                      : GrowthChart(
-                          selectedLocalCurrency: _selectedLocalCurrency,
-                        );
                 },
               ),
             ],
