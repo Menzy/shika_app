@@ -69,8 +69,8 @@ class _AddedListState extends State<AddedList> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-            margin: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+            margin: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
               color: const Color(0xFF001817),
               borderRadius: BorderRadius.circular(10.0),
@@ -79,7 +79,9 @@ class _AddedListState extends State<AddedList> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                  contentPadding: EdgeInsets.zero,
+                  minVerticalPadding: 0,
+                  visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
                   leading: Text(
                     currency.flag,
                     style: const TextStyle(fontSize: 29),
