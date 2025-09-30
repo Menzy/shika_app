@@ -37,16 +37,6 @@ class _BalanceChartState extends State<BalanceChart> {
     final growthPercentage = _calculateGrowthPercentage(filteredData);
     final isPositive = growthPercentage >= 0;
 
-    // Debug logging
-    debugPrint('=== Balance Chart Debug ===');
-    debugPrint('Total data points: ${widget.balanceHistory.length}');
-    debugPrint('Filtered data points: ${filteredData.balances.length}');
-    debugPrint('First balance: ${filteredData.balances.first}');
-    debugPrint('Last balance: ${filteredData.balances.last}');
-    debugPrint('Growth percentage: $growthPercentage');
-    debugPrint('Is positive: $isPositive');
-    debugPrint('========================');
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -77,10 +67,10 @@ class _BalanceChartState extends State<BalanceChart> {
                     children: [
                       Text(
                         '${growthPercentage >= 0 ? '+' : ''}${growthPercentage.toStringAsFixed(1)}%',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 24,
-                          color: isPositive ? Colors.green : const Color(0xFFFF6B47),
-                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFAFFB5),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -277,8 +267,6 @@ class _BalanceChartState extends State<BalanceChart> {
 
   double _calculateGrowthPercentage(
       ({List<double> balances, List<DateTime> times}) data) {
-    debugPrint('Calculating growth with ${data.balances.length} data points');
-    
     if (data.balances.isEmpty) return 0;
     
     // If only one data point, no growth
@@ -308,7 +296,6 @@ class _BalanceChartState extends State<BalanceChart> {
         final previous = data.balances[baselineIndex - 1];
         if (previous.abs() < 0.01) return 100; // Started from 0, now has value
         final change = ((baselineBalance - previous) / previous.abs()) * 100;
-        debugPrint('Last point comparison - Previous: $previous, Current: $baselineBalance, Change: $change%');
         return change;
       }
       return 0;
@@ -317,7 +304,6 @@ class _BalanceChartState extends State<BalanceChart> {
     final last = data.balances.last;
     final percentChange = ((last - baselineBalance) / baselineBalance.abs()) * 100;
     
-    debugPrint('Baseline (index $baselineIndex): $baselineBalance, Last: $last, Change: $percentChange%');
     return percentChange;
   }
 }
