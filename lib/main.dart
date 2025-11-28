@@ -35,8 +35,16 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ExchangeRateProvider()),
-        ChangeNotifierProvider(create: (_) => UserInputProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, UserInputProvider>(
+          create: (_) => UserInputProvider(),
+          update: (_, auth, userInput) {
+            if (userInput != null) {
+              userInput.setDatabaseService(auth.databaseService);
+            }
+            return userInput!;
+          },
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

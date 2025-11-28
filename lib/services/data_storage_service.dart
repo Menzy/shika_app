@@ -45,6 +45,22 @@ class DataStorageService {
     return null;
   }
 
+  // Invested history storage
+  static Future<void> saveInvestedHistory(List<double> investedHistory) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('invested_history', jsonEncode(investedHistory));
+  }
+
+  static Future<List<double>?> loadInvestedHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedInvestedHistory = prefs.getString('invested_history');
+
+    if (storedInvestedHistory != null) {
+      return List<double>.from(jsonDecode(storedInvestedHistory));
+    }
+    return null;
+  }
+
   // Currencies storage
   static Future<void> saveCurrencies<T>(
       List<T> currencies, Map<String, dynamic> Function(T) toJson) async {

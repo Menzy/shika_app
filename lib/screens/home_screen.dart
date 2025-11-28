@@ -206,6 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? const SizedBox.shrink()
                       : BalanceChart(
                           balanceHistory: userInputProvider.balanceHistory,
+                          investedHistory: userInputProvider.investedHistory,
                           timeHistory: userInputProvider.timeHistory,
                           currencySymbol: Currency.getSymbolForCode(
                               userInputProvider.selectedCurrency),

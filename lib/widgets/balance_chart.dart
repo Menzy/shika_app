@@ -5,12 +5,14 @@ enum ChartTimeFilter { today, week, month, year, all }
 
 class BalanceChart extends StatefulWidget {
   final List<double> balanceHistory;
+  final List<double> investedHistory;
   final List<DateTime> timeHistory;
   final String currencySymbol;
 
   const BalanceChart({
     super.key,
     required this.balanceHistory,
+    required this.investedHistory,
     required this.timeHistory,
     required this.currencySymbol,
   });
@@ -213,7 +215,8 @@ class _BalanceChartState extends State<BalanceChart> {
     }
   }
 
-  ({List<double> balances, List<DateTime> times}) _getFilteredData() {
+  ({List<double> balances, List<double> invested, List<DateTime> times})
+      _getFilteredData() {
     final now = DateTime.now();
     DateTime cutoffDate;
 
@@ -236,12 +239,18 @@ class _BalanceChartState extends State<BalanceChart> {
     }
 
     final filteredBalances = <double>[];
+    final filteredInvested = <double>[];
     final filteredTimes = <DateTime>[];
 
     for (int i = 0; i < widget.timeHistory.length; i++) {
       if (widget.timeHistory[i].isAfter(cutoffDate) ||
           widget.timeHistory[i].isAtSameMomentAs(cutoffDate)) {
         filteredBalances.add(widget.balanceHistory[i]);
+        if (i < widget.investedHistory.length) {
+          filteredInvested.add(widget.investedHistory[i]);
+        } else {
+          filteredInvested.add(0); // Fallback
+        }
         filteredTimes.add(widget.timeHistory[i]);
       }
     }
@@ -252,6 +261,11 @@ class _BalanceChartState extends State<BalanceChart> {
       for (int i = widget.timeHistory.length - 1; i >= 0; i--) {
         if (widget.timeHistory[i].isBefore(cutoffDate)) {
           filteredBalances.insert(0, widget.balanceHistory[i]);
+          if (i < widget.investedHistory.length) {
+            filteredInvested.insert(0, widget.investedHistory[i]);
+          } else {
+            filteredInvested.insert(0, 0);
+          }
           filteredTimes.insert(0, widget.timeHistory[i]);
           break;
         }
@@ -259,15 +273,28 @@ class _BalanceChartState extends State<BalanceChart> {
       // Add the last point
       if (filteredBalances.isEmpty) {
         filteredBalances.add(widget.balanceHistory.last);
+        if (widget.investedHistory.isNotEmpty) {
+          filteredInvested.add(widget.investedHistory.last);
+        } else {
+          filteredInvested.add(0);
+        }
         filteredTimes.add(widget.timeHistory.last);
       }
     }
 
-    return (balances: filteredBalances, times: filteredTimes);
+    return (
+      balances: filteredBalances,
+      invested: filteredInvested,
+      times: filteredTimes
+    );
   }
 
   double _calculateGrowthPercentage(
-      ({List<double> balances, List<DateTime> times}) data) {
+      ({
+        List<double> balances,
+        List<double> invested,
+        List<DateTime> times
+      }) data) {
     if (data.balances.isEmpty) return 0;
 
     // If only one data point, no growth
@@ -275,38 +302,28 @@ class _BalanceChartState extends State<BalanceChart> {
       return 0;
     }
 
-    // Find the first non-zero balance to use as baseline
-    double? baselineBalance;
-    int baselineIndex = 0;
+    final startBalance = data.balances.first;
+    final endBalance = data.balances.last;
 
-    for (int i = 0; i < data.balances.length; i++) {
-      if (data.balances[i].abs() > 0.01) {
-        baselineBalance = data.balances[i];
-        baselineIndex = i;
-        break;
-      }
-    }
+    final startInvested = data.invested.isNotEmpty ? data.invested.first : 0.0;
+    final endInvested = data.invested.isNotEmpty ? data.invested.last : 0.0;
 
-    // If all balances are zero, no growth
-    if (baselineBalance == null) return 0;
+    // Calculate Net Invested Capital (NIC) change during the period
+    final netInvestedChange = endInvested - startInvested;
 
-    // If baseline is the last point, compare with previous or return 0
-    if (baselineIndex == data.balances.length - 1) {
-      // Compare with the point before if it exists
-      if (baselineIndex > 0) {
-        final previous = data.balances[baselineIndex - 1];
-        if (previous.abs() < 0.01) return 100; // Started from 0, now has value
-        final change = ((baselineBalance - previous) / previous.abs()) * 100;
-        return change;
-      }
-      return 0;
-    }
+    // Calculate Profit/Loss
+    // Profit = (EndBalance - StartBalance) - NetInvestedChange
+    final profit = (endBalance - startBalance) - netInvestedChange;
 
-    final last = data.balances.last;
-    final percentChange =
-        ((last - baselineBalance) / baselineBalance.abs()) * 100;
+    // Calculate Basis for percentage
+    // Basis = StartBalance + NetInvestedChange
+    // This is a simplified Modified Dietz approach where we assume flows happen at start
+    // For more accuracy we would time-weight, but this is sufficient for "not 15000%"
+    final basis = startBalance + netInvestedChange;
 
-    return percentChange;
+    if (basis.abs() < 0.01) return 0;
+
+    return (profit / basis) * 100;
   }
 }
 

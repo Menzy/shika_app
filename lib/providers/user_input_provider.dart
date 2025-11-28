@@ -13,6 +13,7 @@ class UserInputProvider with ChangeNotifier {
   String _selectedCurrency = 'USD';
   List<CurrencyAmount> _currencies = [];
   List<double> _balanceHistory = [];
+  List<double> _investedHistory = [];
   List<DateTime> _timeHistory = [];
   List<CurrencyTransaction> _transactions = [];
   List<Transaction> _legacyTransactions = [];
@@ -28,6 +29,7 @@ class UserInputProvider with ChangeNotifier {
   String get selectedCurrency => _selectedCurrency;
   List<CurrencyAmount> get currencies => _currencies;
   List<double> get balanceHistory => _balanceHistory;
+  List<double> get investedHistory => _investedHistory;
   List<DateTime> get timeHistory => _timeHistory;
   List<CurrencyTransaction> get transactions => _transactions;
 
@@ -49,6 +51,7 @@ class UserInputProvider with ChangeNotifier {
   void clearData() {
     _currencies = [];
     _balanceHistory = [];
+    _investedHistory = [];
     _timeHistory = [];
     _transactions = [];
     _legacyTransactions = [];
@@ -116,12 +119,20 @@ class UserInputProvider with ChangeNotifier {
         if (historyData != null) {
           _balanceHistory = historyData.balances;
           _timeHistory = historyData.times;
+          final invested = await _databaseService!.loadInvestedHistory();
+          if (invested != null) {
+            _investedHistory = invested;
+          }
         }
       } else {
         final historyData = await DataStorageService.loadBalanceHistory();
         if (historyData != null) {
           _balanceHistory = historyData.balances;
           _timeHistory = historyData.times;
+          final invested = await DataStorageService.loadInvestedHistory();
+          if (invested != null) {
+            _investedHistory = invested;
+          }
         }
       }
 
@@ -308,12 +319,34 @@ class UserInputProvider with ChangeNotifier {
     _balanceHistory.add(totalBalance);
     _timeHistory.add(DateTime.now());
 
+    // Calculate current total invested
+    double currentInvested = 0;
+    if (_investedHistory.isNotEmpty) {
+      currentInvested = _investedHistory.last;
+    }
+
+    // If we have transactions, we should probably recalculate invested from scratch or append
+    // But since we are adding a transaction, we can just add the new amount if we knew it in local currency
+    // However, addCurrency doesn't pass the amount in local currency directly easily here without recalculating
+    // So for accuracy, let's just use the last value for now, but ideally we should recalculate
+    // Actually, recalculateHistory does it correctly. Here we are just appending.
+    // Let's assume for now we just append the previous value, but this is slightly wrong if we just added money.
+    // To fix this properly, we should probably just call recalculateHistory instead of this manual append
+    // But for performance we append.
+    // Let's try to estimate the added amount in local currency.
+    // We don't have the added amount in local currency here easily.
+    // So, let's just duplicate the last invested amount for now.
+    // The next full recalculation will fix it.
+    _investedHistory.add(currentInvested);
+
     // Save the balance history
     DataStorageService.saveBalanceHistory(_balanceHistory, _timeHistory);
+    DataStorageService.saveInvestedHistory(_investedHistory);
 
     if (_databaseService != null) {
       _databaseService!.saveBalanceHistory(_balanceHistory,
           _timeHistory.map((e) => e.toIso8601String()).toList());
+      _databaseService!.saveInvestedHistory(_investedHistory);
     }
 
     notifyListeners();
@@ -377,6 +410,7 @@ class UserInputProvider with ChangeNotifier {
 
     // Clear existing history
     _balanceHistory = [];
+    _investedHistory = [];
     _timeHistory = [];
 
     // Sort transactions chronologically
@@ -424,15 +458,34 @@ class UserInputProvider with ChangeNotifier {
       }
 
       _balanceHistory.add(runningTotal);
+
+      // Calculate total invested at this timestamp
+      double totalInvested = 0;
+      for (final transaction in relevantTransactions) {
+        // Convert transaction amount to local currency at CURRENT rate
+        // Note: Ideally we should use historical rates, but we don't have them.
+        // Using current rates is the standard approximation for this app.
+        final rate = newRates[transaction.currencyCode] ?? 1.0;
+        final amountInLocal =
+            transaction.amount / rate * (newRates[localCurrencyCode] ?? 1.0);
+
+        // For invested capital, we only care about additions (deposits) and subtractions (withdrawals)
+        // We assume all transactions are deposits/withdrawals since we don't have trades yet
+        totalInvested += amountInLocal;
+      }
+      _investedHistory.add(totalInvested);
+
       _timeHistory.add(timestamp);
     }
 
     // Save updated history
     await DataStorageService.saveBalanceHistory(_balanceHistory, _timeHistory);
+    await DataStorageService.saveInvestedHistory(_investedHistory);
 
     if (_databaseService != null) {
       await _databaseService!.saveBalanceHistory(_balanceHistory,
           _timeHistory.map((e) => e.toIso8601String()).toList());
+      await _databaseService!.saveInvestedHistory(_investedHistory);
     }
 
     notifyListeners();

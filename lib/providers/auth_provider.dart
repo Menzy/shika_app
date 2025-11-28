@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
-  late DatabaseService _databaseService;
+  DatabaseService? _databaseService;
 
   bool _isLoading = false;
   User? _user;
@@ -20,6 +20,7 @@ class AuthProvider extends ChangeNotifier {
   String? get userId => _user?.uid;
   String? get email => _user?.email;
   String? get username => _user?.displayName;
+  DatabaseService? get databaseService => _databaseService;
 
   final Completer<void> _authReady = Completer<void>();
 
@@ -64,7 +65,8 @@ class AuthProvider extends ChangeNotifier {
             .instance.currentUser; // Refresh user to get display name
 
         _databaseService = DatabaseService(uid: _user!.uid);
-        await _databaseService.saveUserData(_user!);
+        _databaseService = DatabaseService(uid: _user!.uid);
+        await _databaseService?.saveUserData(_user!);
       }
 
       return null;
@@ -108,7 +110,8 @@ class AuthProvider extends ChangeNotifier {
 
       if (credential?.user != null) {
         _databaseService = DatabaseService(uid: credential!.user!.uid);
-        await _databaseService.saveUserData(credential.user!);
+        _databaseService = DatabaseService(uid: credential.user!.uid);
+        await _databaseService?.saveUserData(credential.user!);
         return null;
       } else {
         return 'Google sign in cancelled';
@@ -153,7 +156,9 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
 
       // Delete user data from Firestore
-      await _databaseService.deleteUserData(user.uid);
+      if (_databaseService != null) {
+        await _databaseService!.deleteUserData(user.uid);
+      }
 
       // Delete user from Firebase Auth
       await user.delete();

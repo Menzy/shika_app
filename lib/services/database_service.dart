@@ -100,6 +100,25 @@ class DatabaseService {
     }, SetOptions(merge: true));
   }
 
+  Future<void> saveInvestedHistory(List<double> investedHistory) async {
+    if (uid == null) return;
+    await dataDocument.set({
+      'investedHistory': investedHistory,
+    }, SetOptions(merge: true));
+  }
+
+  Future<List<double>?> loadInvestedHistory() async {
+    if (uid == null) return null;
+    final doc = await dataDocument.get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data() as Map<String, dynamic>;
+      if (data.containsKey('investedHistory')) {
+        return List<double>.from(data['investedHistory']);
+      }
+    }
+    return null;
+  }
+
   Future<({List<double> balances, List<DateTime> times})?>
       loadBalanceHistory() async {
     if (uid == null) return null;
