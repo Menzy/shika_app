@@ -39,53 +39,6 @@ class TTopSectionContainer extends StatelessWidget {
             ),
           ),
         ),
-        // Scrollable green container - positioned to scroll over the header
-        SingleChildScrollView(
-          physics: const ClampingScrollPhysics(), // Prevents bounce/over-scroll
-          child: Column(
-            children: [
-              // Transparent spacer to start the green container at the right position
-              SizedBox(height: imageHeight - 40),
-              // Green container with rounded corners
-              Container(
-                constraints: BoxConstraints(
-                  minHeight:
-                      MediaQuery.of(context).size.height - (imageHeight - 40),
-                ),
-                padding: const EdgeInsets.all(22),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF001817),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (title != null)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 18),
-                        child: TopSectionTitle(
-                          title: title!, // Title passed as a widget
-                        ),
-                      ),
-                    if (title != null)
-                      const SizedBox(height: 35), // Spacing before content
-                    // Fixed content that doesn't scroll (if provided)
-                    if (fixedContent != null) ...[
-                      fixedContent!,
-                      const SizedBox(height: 16),
-                    ],
-                    // Content
-                    child,
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
         // Fixed logo and text OR Custom Header
         Positioned(
           top: 50,
@@ -137,6 +90,53 @@ class TTopSectionContainer extends StatelessWidget {
                   const SizedBox(width: 20),
                 ],
               ),
+        ),
+        // Scrollable green container - positioned to scroll over the header
+        SingleChildScrollView(
+          physics: const ClampingScrollPhysics(), // Prevents bounce/over-scroll
+          child: Column(
+            children: [
+              // Transparent spacer to start the green container at the right position
+              SizedBox(height: imageHeight - 40),
+              // Green container with rounded corners
+              Container(
+                constraints: BoxConstraints(
+                  minHeight:
+                      MediaQuery.of(context).size.height - (imageHeight - 40),
+                ),
+                padding: const EdgeInsets.all(22),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF001817),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(30),
+                    topRight: Radius.circular(30),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (title != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 18),
+                        child: TopSectionTitle(
+                          title: title!, // Title passed as a widget
+                        ),
+                      ),
+                    if (title != null)
+                      const SizedBox(height: 35), // Spacing before content
+                    // Fixed content that doesn't scroll (if provided)
+                    if (fixedContent != null) ...[
+                      fixedContent!,
+                      const SizedBox(height: 16),
+                    ],
+                    // Content
+                    child,
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );

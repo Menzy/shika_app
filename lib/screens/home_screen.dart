@@ -187,19 +187,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 100),
+          padding: const EdgeInsets.only(bottom: 60),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Consumer<UserInputProvider>(
-                builder: (context, userInputProvider, _) {
-                  return userInputProvider.currencies.isEmpty
-                      ? _buildWelcomeMessage(context)
-                      : _buildAssetsSection(userInputProvider);
-                },
-              ),
-              const SizedBox(height: 16),
               Consumer<UserInputProvider>(
                 builder: (context, userInputProvider, _) {
                   return userInputProvider.currencies.isEmpty
@@ -211,6 +203,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           currencySymbol: Currency.getSymbolForCode(
                               userInputProvider.selectedCurrency),
                         );
+                },
+              ),
+              const SizedBox(height: 16),
+              Consumer<UserInputProvider>(
+                builder: (context, userInputProvider, _) {
+                  return userInputProvider.currencies.isEmpty
+                      ? _buildWelcomeMessage(context)
+                      : _buildAssetsSection(userInputProvider);
                 },
               ),
             ],

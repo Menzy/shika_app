@@ -308,22 +308,21 @@ class _BalanceChartState extends State<BalanceChart> {
     final startInvested = data.invested.isNotEmpty ? data.invested.first : 0.0;
     final endInvested = data.invested.isNotEmpty ? data.invested.last : 0.0;
 
-    // Calculate Net Invested Capital (NIC) change during the period
-    final netInvestedChange = endInvested - startInvested;
+    // Calculate Net Additions (Invested Change)
+    final netAdditions = endInvested - startInvested;
 
-    // Calculate Profit/Loss
-    // Profit = (EndBalance - StartBalance) - NetInvestedChange
-    final profit = (endBalance - startBalance) - netInvestedChange;
+    // Calculate Total Change in Value
+    final totalChange = endBalance - startBalance;
 
-    // Calculate Basis for percentage
-    // Basis = StartBalance + NetInvestedChange
-    // This is a simplified Modified Dietz approach where we assume flows happen at start
-    // For more accuracy we would time-weight, but this is sufficient for "not 15000%"
-    final basis = startBalance + netInvestedChange;
+    // Scaled Growth Formula:
+    // Growth % = (Total Change / (Start Balance + Net Additions)) * 100
+    // This dampens the "infinity" effect of large deposits on small balances
 
-    if (basis.abs() < 0.01) return 0;
+    final denominator = startBalance + netAdditions;
 
-    return (profit / basis) * 100;
+    if (denominator.abs() < 0.01) return 0;
+
+    return (totalChange / denominator) * 100;
   }
 }
 
