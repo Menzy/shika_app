@@ -8,6 +8,9 @@ class BalanceChart extends StatefulWidget {
   final List<double> investedHistory;
   final List<DateTime> timeHistory;
   final String currencySymbol;
+  final bool showBackground;
+  final bool showTitle;
+  final EdgeInsetsGeometry? padding;
 
   const BalanceChart({
     super.key,
@@ -15,6 +18,9 @@ class BalanceChart extends StatefulWidget {
     required this.investedHistory,
     required this.timeHistory,
     required this.currencySymbol,
+    this.showBackground = true,
+    this.showTitle = true,
+    this.padding,
   });
 
   @override
@@ -23,6 +29,14 @@ class BalanceChart extends StatefulWidget {
 
 class _BalanceChartState extends State<BalanceChart> {
   ChartTimeFilter _selectedFilter = ChartTimeFilter.month;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.showTitle) {
+      _selectedFilter = ChartTimeFilter.all;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,11 +54,13 @@ class _BalanceChartState extends State<BalanceChart> {
     final isPositive = growthPercentage >= 0;
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF00312F),
-        borderRadius: BorderRadius.circular(16),
-      ),
+      padding: widget.padding ?? const EdgeInsets.all(16),
+      decoration: widget.showBackground
+          ? BoxDecoration(
+              color: const Color(0xFF00312F),
+              borderRadius: BorderRadius.circular(16),
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -53,40 +69,35 @@ class _BalanceChartState extends State<BalanceChart> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Portfolio Growth',
-                    style: TextStyle(
-                      color: Color(0xFFFAFFB5),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+              if (widget.showTitle)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Portfolio Growth',
+                      style: TextStyle(
+                        color: Color(0xFFFAFFB5),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
+                    const SizedBox(height: 4),
+                    _buildPercentageRow(growthPercentage, isPositive),
+                  ],
+                )
+              else
+                _buildPercentageRow(growthPercentage, isPositive),
+              if (widget.showTitle)
+                _buildFilterDropdown()
+              else
+                const Text(
+                  'All time',
+                  style: TextStyle(
+                    color: Color(0xFFFAFFB5),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        '${growthPercentage >= 0 ? '+' : ''}${growthPercentage.toStringAsFixed(1)}%',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          color: Color(0xFFFAFFB5),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                        color:
-                            isPositive ? Colors.green : const Color(0xFFFF6B47),
-                        size: 24,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              _buildFilterDropdown(),
+                ),
             ],
           ),
 
@@ -106,6 +117,27 @@ class _BalanceChartState extends State<BalanceChart> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPercentageRow(double growthPercentage, bool isPositive) {
+    return Row(
+      children: [
+        Text(
+          '${growthPercentage >= 0 ? '+' : ''}${growthPercentage.toStringAsFixed(1)}%',
+          style: const TextStyle(
+            fontSize: 24,
+            color: Color(0xFFFAFFB5),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Icon(
+          isPositive ? Icons.arrow_upward : Icons.arrow_downward,
+          color: isPositive ? Colors.green : const Color(0xFFFF6B47),
+          size: 24,
+        ),
+      ],
     );
   }
 

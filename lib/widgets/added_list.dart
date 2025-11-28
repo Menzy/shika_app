@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:kukuo/models/currency_amount_model.dart';
 import 'package:kukuo/providers/exchange_rate_provider.dart';
 import 'package:kukuo/providers/user_input_provider.dart';
-import 'package:kukuo/screens/currency_details_screen.dart';
+
 import 'package:kukuo/widgets/currency_formatter.dart';
 import 'package:provider/provider.dart';
+import 'package:kukuo/widgets/balance_chart.dart';
 
 class AddedList extends StatefulWidget {
   final List<CurrencyAmount> currencies;
@@ -45,26 +46,9 @@ class _AddedListState extends State<AddedList> {
 
         return GestureDetector(
           onTap: () {
-            if (widget.isAllAssetsScreen) {
-              // For All Assets Screen - expand/collapse with chart
-              setState(() {
-                _expandedIndex = isExpanded ? null : index;
-              });
-            } else {
-              // For Home Screen - navigate to details
-              final transactions =
-                  Provider.of<UserInputProvider>(context, listen: false)
-                      .getTransactionsByCurrency(currency.code);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CurrencyDetailScreen(
-                    currencyCode: currency.code,
-                    transactions: transactions,
-                  ),
-                ),
-              );
-            }
+            setState(() {
+              _expandedIndex = isExpanded ? null : index;
+            });
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
@@ -81,7 +65,8 @@ class _AddedListState extends State<AddedList> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   minVerticalPadding: 0,
-                  visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+                  visualDensity:
+                      const VisualDensity(horizontal: 0, vertical: -4),
                   leading: Text(
                     currency.flag,
                     style: const TextStyle(fontSize: 29),
@@ -96,9 +81,71 @@ class _AddedListState extends State<AddedList> {
                     style:
                         const TextStyle(color: Color(0xFF00514F), fontSize: 10),
                   ),
+                  trailing: isExpanded
+                      ? GestureDetector(
+                          onTap: () {
+                            // TODO: Implement Edit Balance
+                          },
+                          child: const Text(
+                            'Edit Balance',
+                            style: TextStyle(
+                              color: Color(0xFFD8FE00),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
-                // Only show expanded content in All Assets Screen
+                // Expanded content
 
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  alignment: Alignment.topCenter,
+                  child: isExpanded
+                      ? Column(
+                          children: [
+                            const SizedBox(height: 24),
+                            Consumer<UserInputProvider>(
+                              builder: (context, userInputProvider, _) {
+                                final history =
+                                    userInputProvider.getCurrencyHistory(
+                                        currency.code,
+                                        widget.selectedLocalCurrency);
+
+                                // Scale balances by current rate to show value history
+                                final scaledBalances =
+                                    history.balances.map((amount) {
+                                  return amount /
+                                      rateForCurrency *
+                                      rateForLocalCurrency;
+                                }).toList();
+
+                                // Scale invested by current rate
+                                final scaledInvested =
+                                    history.invested.map((amount) {
+                                  return amount /
+                                      rateForCurrency *
+                                      rateForLocalCurrency;
+                                }).toList();
+
+                                return BalanceChart(
+                                  balanceHistory: scaledBalances,
+                                  investedHistory: scaledInvested,
+                                  timeHistory: history.times,
+                                  currencySymbol: widget.selectedLocalCurrency,
+                                  showBackground: false,
+                                  showTitle: false,
+                                  padding: EdgeInsets.zero,
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
+                ),
               ],
             ),
           ),

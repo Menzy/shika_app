@@ -48,7 +48,9 @@ class _AllAssetsScreenState extends State<AllAssetsScreen> {
         child: Consumer<UserInputProvider>(
           builder: (context, userInputProvider, child) {
             final consolidatedCurrencies =
-                userInputProvider.getConsolidatedCurrencies();
+                userInputProvider.getSortedConsolidatedCurrencies(
+                    Provider.of<ExchangeRateProvider>(context).exchangeRates,
+                    userInputProvider.selectedCurrency);
 
             return SingleChildScrollView(
               child: Container(

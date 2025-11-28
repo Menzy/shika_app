@@ -424,6 +424,25 @@ class UserInputProvider with ChangeNotifier {
         .toList();
   }
 
+  List<CurrencyAmount> getSortedConsolidatedCurrencies(
+      Map<String, double> exchangeRates, String selectedLocalCurrency) {
+    final consolidated = getConsolidatedCurrencies();
+
+    // Sort by value in selected local currency
+    consolidated.sort((a, b) {
+      final rateA = exchangeRates[a.code] ?? 1.0;
+      final rateB = exchangeRates[b.code] ?? 1.0;
+      final localRate = exchangeRates[selectedLocalCurrency] ?? 1.0;
+
+      final valueA = a.amount / rateA * localRate;
+      final valueB = b.amount / rateB * localRate;
+
+      return valueB.compareTo(valueA); // Descending order
+    });
+
+    return consolidated;
+  }
+
   List<Transaction> getTransactions() {
     return List.from(_legacyTransactions);
   }
@@ -563,6 +582,140 @@ class UserInputProvider with ChangeNotifier {
 
     // Notify the currency stream controller
     _currencyStreamController.add(_currencies);
+  }
+
+  ({List<double> balances, List<double> invested, List<DateTime> times})
+      getCurrencyHistory(String currencyCode, [String? localCurrencyCode]) {
+    // Use USD as default if no currency is provided
+    localCurrencyCode ??= _selectedCurrency;
+
+    // Filter transactions for this currency
+    final currencyTransactions =
+        _transactions.where((t) => t.currencyCode == currencyCode).toList();
+
+    if (currencyTransactions.isEmpty) {
+      return (balances: <double>[], invested: <double>[], times: <DateTime>[]);
+    }
+
+    // Sort transactions chronologically
+    final sortedTransactions = List.from(currencyTransactions)
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    // Get all unique timestamps from transactions
+    final Set<DateTime> uniqueTimestamps = sortedTransactions
+        .map((t) => DateTime(
+              t.timestamp.year,
+              t.timestamp.month,
+              t.timestamp.day,
+              t.timestamp.hour,
+              t.timestamp.minute,
+            ))
+        .toSet()
+      ..add(DateTime.now());
+
+    // Sort timestamps chronologically
+    final sortedTimestamps = uniqueTimestamps.toList()..sort();
+
+    final balances = <double>[];
+    final invested = <double>[];
+    final times = <DateTime>[];
+
+    // Get exchange rates from provider (this is a bit tricky since we don't have direct access here)
+    // We'll rely on the caller to pass rates or we use a simplified approach
+    // Actually, for a specific asset history, we usually want to show the AMOUNT of that asset over time
+    // OR the VALUE of that asset over time.
+    // The user asked for "growth of that particular asset".
+    // Usually this means value in local currency.
+    // However, we don't have historical exchange rates.
+    // So we will use the CURRENT exchange rate for all historical points to show "accumulation" growth?
+    // OR we just show the amount growth?
+    // The main chart shows VALUE growth.
+    // If we want to show VALUE growth for a single asset, we need rates.
+    // Since we only have current rates, we can only show how the QUANTITY changed,
+    // scaled by CURRENT rate. This shows "if you held this much back then, it would be worth this much now".
+    // This is often acceptable if historical rates aren't available.
+    // Let's assume we want to show Value in Local Currency using Current Rate.
+
+    // We need to get the current rate for this currency.
+    // Since we don't have the rates map here, we might need to pass it or fetch it.
+    // But wait, `recalculateHistory` takes `newRates`.
+    // `getCurrencyHistory` should probably take `exchangeRates` as an argument.
+    // But `UserInputProvider` doesn't store rates.
+    // Let's check how `recalculateHistory` is called. It's called from `ExchangeRateProvider` or when currency changes.
+    // For this UI method, maybe we can just return the QUANTITY history, and let the UI scale it?
+    // But `BalanceChart` expects `double` balances (values).
+    // Let's return the QUANTITY history for now, and the UI can multiply by current rate.
+    // Actually, `BalanceChart` logic `_calculateGrowthPercentage` uses `invested` vs `balance`.
+    // For a single asset:
+    // Invested = Net amount of money put into this asset (in local currency at time of transaction).
+    // Balance = Current Value (Quantity * Current Price).
+    // If we don't have historical prices, we can't calculate "Invested" accurately in local currency terms for the past.
+    // However, we DO have the transaction amount.
+    // If we assume the transaction amount was "added" to the portfolio.
+    // But for a single asset, "Invested" usually means "Cost Basis".
+    // We don't track Cost Basis (price at time of purchase).
+    // We only track "Amount Added".
+    // So "Invested" for a single asset is just the sum of all additions.
+    // And "Balance" is the current quantity.
+    // If we want to show a chart, we probably want to show the VALUE over time.
+    // Value(t) = Quantity(t) * Price(t).
+    // We don't have Price(t).
+    // We can use Price(now).
+    // Value(t) ~ Quantity(t) * Price(now).
+    // This shows the history of the HOLDINGS, not the value fluctuation due to price.
+    // This is "Balance Growth" in terms of quantity.
+    // The user said: "every time the user has added or removed ... show that charts representing only the data for that particular assets".
+    // This implies showing the history of user's interactions (add/remove).
+    // So showing Quantity * CurrentPrice is a good proxy for "Holdings History".
+
+    for (final timestamp in sortedTimestamps) {
+      // Get all transactions up to this timestamp
+      final relevantTransactions = sortedTransactions
+          .where((t) =>
+              t.timestamp.isBefore(timestamp) || t.timestamp == timestamp)
+          .toList();
+
+      double currentQuantity = 0;
+      double currentInvestedQty = 0;
+
+      for (final transaction in relevantTransactions) {
+        currentQuantity += transaction.amount;
+        // For invested, we sum up additions.
+        // But wait, `investedHistory` in `BalanceChart` is used for growth calc.
+        // For a single asset, if we only track quantity, "Invested" is just the quantity added?
+        // If we use Quantity * CurrentPrice, then:
+        // Balance = Quantity * Price
+        // Invested = (Sum of Additions) * Price
+        // Growth = (Balance - Invested) / Invested
+        // This will always be 0 if we use constant price!
+        // Because Balance = Sum of Additions (if no price change).
+        // So we CANNOT show "Growth" (Profit/Loss) without historical prices.
+        // BUT, the user might just want to see the "Balance History" (how much I had).
+        // The `BalanceChart` calculates growth.
+        // If we pass `invested` as 0 or same as balance, growth will be 0.
+        // Maybe we just show the line chart of the Value (Quantity * Price).
+        // And we accept that "Growth" number might be meaningless or we hide it?
+        // The user said "show this chart to show the growth of that particular asset".
+        // If they mean "Price Growth", we can't do it.
+        // If they mean "Portfolio Growth for this asset" (i.e. I bought more), we can do it.
+        // Given we don't have historical data, we can only show "Holdings Growth".
+        // So let's return the Quantity history. The UI will multiply by current rate.
+
+        // Actually, let's return the raw Quantity history.
+        // And for "Invested", we can just return 0s or the same as quantity if we want to disable the "Profit" calculation.
+        // Or, we can try to approximate.
+        // Let's just return Quantity history.
+        currentInvestedQty += transaction
+            .amount; // This is basically same as currentQuantity if we start from 0
+      }
+
+      balances.add(currentQuantity);
+      invested.add(
+          currentInvestedQty); // This will make growth 0% which is correct for "Holdings only" view
+      times.add(timestamp);
+    }
+
+    return (balances: balances, invested: invested, times: times);
   }
 
   Future<void> toggleChartPosition(bool value) async {

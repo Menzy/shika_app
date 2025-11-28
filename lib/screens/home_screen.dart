@@ -12,7 +12,6 @@ import 'package:kukuo/screens/settings_screen.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kukuo/widgets/balance_chart.dart';
 import 'package:kukuo/models/currency_model.dart';
-import 'package:kukuo/services/database_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onSeeAllPressed;
@@ -24,76 +23,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _isLoading = true;
-  String? _error;
-
   @override
   void initState() {
     super.initState();
-    // Move initialization to post frame callback to avoid setState during build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeData();
-    });
-  }
-
-  Future<void> _initializeData() async {
-    final exchangeRateProvider =
-        Provider.of<ExchangeRateProvider>(context, listen: false);
-    final userInputProvider =
-        Provider.of<UserInputProvider>(context, listen: false);
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    // Initialize DatabaseService with current user
-    if (authProvider.user != null) {
-      final databaseService = DatabaseService(uid: authProvider.user!.uid);
-      userInputProvider.setDatabaseService(databaseService);
-    } else {
-      userInputProvider.setDatabaseService(null);
-    }
-
-    exchangeRateProvider.setUserInputProvider(userInputProvider);
-    userInputProvider.setExchangeRateProvider(exchangeRateProvider);
-
-    try {
-      // Load transactions first (this also recalculates currencies)
-      await userInputProvider.loadTransactions();
-
-      // Load exchange rates
-      await _loadInitialData();
-
-      // Recalculate balance history with current exchange rates
-      if (exchangeRateProvider.exchangeRates.isNotEmpty) {
-        await userInputProvider.recalculateHistory(
-            exchangeRateProvider.exchangeRates,
-            userInputProvider.selectedCurrency);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _error = e.toString());
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _loadInitialData() async {
-    try {
-      if (!mounted) return;
-      await Provider.of<ExchangeRateProvider>(context, listen: false)
-          .fetchExchangeRates();
-      if (!mounted) return;
-      await Provider.of<UserInputProvider>(context, listen: false)
-          .loadCurrencies();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error fetching data: $e')),
-        );
-      }
-    }
   }
 
   // Extracted welcome message widget
@@ -137,8 +69,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           AddedList(
-            currencies:
-                userInputProvider.getConsolidatedCurrencies().take(4).toList(),
+            currencies: userInputProvider
+                .getSortedConsolidatedCurrencies(
+                    Provider.of<ExchangeRateProvider>(context).exchangeRates,
+                    userInputProvider.selectedCurrency)
+                .take(4)
+                .toList(),
             selectedLocalCurrency: userInputProvider.selectedCurrency,
             exchangeRateProvider: Provider.of<ExchangeRateProvider>(context),
             isAllAssetsScreen: false,
@@ -150,28 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (_error != null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Error: $_error'),
-              ElevatedButton(
-                onPressed: _initializeData,
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    // Loading and error states are now handled in SplashScreen
 
     return Scaffold(
       body: TTopSectionContainer(
