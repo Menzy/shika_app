@@ -15,14 +15,36 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF000D0C),
       body: TTopSectionContainer(
-        title: const Text(
-          'Settings',
-          style: TextStyle(
-            fontFamily: 'Gazpacho',
-            fontSize: 30,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFD8FE00),
-          ),
+        customHeader: Row(
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00312F),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF00514F),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Text(
+              'Settings',
+              style: TextStyle(
+                fontFamily: 'Gazpacho',
+                fontSize: 24,
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
         child: Container(
           padding: const EdgeInsets.all(20),

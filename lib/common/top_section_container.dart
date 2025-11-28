@@ -6,17 +6,19 @@ import 'package:iconsax/iconsax.dart';
 
 class TTopSectionContainer extends StatelessWidget {
   final Widget child;
-  final Widget title; // Title as a widget
+  final Widget? title; // Title as a widget (now optional)
   final Widget? subtitle; // Optional subtitle as a widget
   final Widget? fixedContent; // New: Fixed content that doesn't scroll
+  final Widget? customHeader; // New: Custom header to replace logo/settings row
   final double imageHeight;
 
   const TTopSectionContainer({
     super.key,
     required this.child,
-    required this.title, // Title as a widget
+    this.title, // Title as a widget
     this.subtitle, // Optional subtitle as a widget
     this.fixedContent, // New: Fixed content that doesn't scroll
+    this.customHeader, // New: Custom header
     this.imageHeight = 160, // Default height for the image
   });
 
@@ -62,13 +64,15 @@ class TTopSectionContainer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 18),
-                      child: TopSectionTitle(
-                        title: title, // Title passed as a widget
+                    if (title != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 18),
+                        child: TopSectionTitle(
+                          title: title!, // Title passed as a widget
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 35), // Spacing before content
+                    if (title != null)
+                      const SizedBox(height: 35), // Spacing before content
                     // Fixed content that doesn't scroll (if provided)
                     if (fixedContent != null) ...[
                       fixedContent!,
@@ -82,56 +86,57 @@ class TTopSectionContainer extends StatelessWidget {
             ],
           ),
         ),
-        // Fixed logo and text
+        // Fixed logo and text OR Custom Header
         Positioned(
           top: 50,
           left: 40,
           right: 0,
-          child: Row(
-            children: [
-              SvgPicture.asset(
-                'assets/icons/logo.svg',
-                width: 35,
-                height: 35,
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'Kukuo.',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'Gazpacho',
-                  fontSize: 20,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsScreen(),
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF00312F),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0xFF00514F),
+          child: customHeader ??
+              Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/logo.svg',
+                    width: 35,
+                    height: 35,
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Kukuo.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Gazpacho',
+                      fontSize: 20,
                     ),
                   ),
-                  child: const Icon(
-                    Iconsax.setting_2,
-                    color: Color(0xFFD8FE00),
-                    size: 20,
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00312F),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF00514F),
+                        ),
+                      ),
+                      child: const Icon(
+                        Iconsax.setting_2,
+                        color: Color(0xFFD8FE00),
+                        size: 20,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 20),
+                ],
               ),
-              const SizedBox(width: 20),
-            ],
-          ),
         ),
       ],
     );
