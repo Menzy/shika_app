@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:kukuo/providers/auth_provider.dart';
 import 'package:kukuo/common/section_heading.dart';
 import 'package:kukuo/common/top_section_container.dart';
 import 'package:kukuo/providers/exchange_rate_provider.dart';
@@ -47,9 +48,11 @@ class _HomeScreenState extends State<HomeScreen> {
       // Load saved currency preference first
       final savedCurrency =
           await CurrencyPreferenceService.loadSelectedCurrency();
-      setState(() {
-        _selectedLocalCurrency = savedCurrency;
-      });
+      if (mounted) {
+        setState(() {
+          _selectedLocalCurrency = savedCurrency;
+        });
+      }
 
       // Load transactions first (this also recalculates currencies)
       await userInputProvider.loadTransactions();
@@ -63,9 +66,13 @@ class _HomeScreenState extends State<HomeScreen> {
             exchangeRateProvider.exchangeRates, _selectedLocalCurrency);
       }
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -88,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _selectLocalCurrency() async {
     if (!mounted) return;
-    
+
     final selectedCurrency = await showCurrencyBottomSheet(context);
 
     if (selectedCurrency != null && mounted) {
@@ -115,12 +122,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Extracted welcome message widget
-  Widget _buildWelcomeMessage() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20),
+  Widget _buildWelcomeMessage(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final displayName = authProvider.username ?? 'User';
+    String firstName = displayName.split(' ').first;
+    if (firstName.isNotEmpty) {
+      firstName = firstName[0].toUpperCase() + firstName.substring(1);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Text(
-        'Welcome! Let\'s make our first entry, shall we!',
-        style: TextStyle(
+        'Welcome $firstName! Let\'s make our first entry, shall we!',
+        style: const TextStyle(
           color: Color.fromARGB(32, 216, 254, 0),
           fontSize: 20,
           fontWeight: FontWeight.w500,
@@ -209,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Consumer<UserInputProvider>(
                 builder: (context, userInputProvider, _) {
                   return userInputProvider.currencies.isEmpty
-                      ? _buildWelcomeMessage()
+                      ? _buildWelcomeMessage(context)
                       : _buildAssetsSection(userInputProvider);
                 },
               ),
@@ -221,7 +235,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       : BalanceChart(
                           balanceHistory: userInputProvider.balanceHistory,
                           timeHistory: userInputProvider.timeHistory,
-                          currencySymbol: Currency.getSymbolForCode(_selectedLocalCurrency),
+                          currencySymbol:
+                              Currency.getSymbolForCode(_selectedLocalCurrency),
                         );
                 },
               ),

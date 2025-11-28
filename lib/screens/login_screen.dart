@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kukuo/providers/auth_provider.dart';
 import 'package:kukuo/screens/signup_screen.dart';
+import 'package:kukuo/navigation_menu.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -215,6 +216,10 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: Colors.red,
           ),
         );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const NavigationMenu()),
+        );
       }
     }
   }
@@ -233,6 +238,10 @@ class _LoginScreenState extends State<LoginScreen> {
             content: Text(error),
             backgroundColor: Colors.red,
           ),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const NavigationMenu()),
         );
       }
     }

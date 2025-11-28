@@ -1,104 +1,48 @@
-import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kukuo/screens/login_screen.dart';
+import 'package:kukuo/services/auth_service.dart';
+import 'package:kukuo/services/database_service.dart';
 
 class AuthProvider extends ChangeNotifier {
-  static const String _userKey = 'user_data';
-  static const String _isLoggedInKey = 'is_logged_in';
+  final AuthService _authService = AuthService();
+  late DatabaseService _databaseService;
 
   bool _isLoading = false;
-  Map<String, dynamic>? _user;
-  String? _username;
-  String? _email;
-  String? _userId;
+  User? _user;
 
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _user != null;
-  String? get username => _username;
-  Map<String, dynamic>? get user => _user;
-  String? get userId => _userId;
-  String? get email => _email;
+  User? get user => _user;
+  String? get userId => _user?.uid;
+  String? get email => _user?.email;
+  String? get username => _user?.displayName;
+
+  final Completer<void> _authReady = Completer<void>();
 
   AuthProvider() {
-    _loadUserData();
+    _init();
   }
 
-  Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isLoggedIn = prefs.getBool(_isLoggedInKey) ?? false;
-
-    if (isLoggedIn) {
-      final userData = prefs.getString(_userKey);
-      if (userData != null) {
-        _user = Map<String, dynamic>.from(
-            Map<String, dynamic>.from(await _parseUserData(userData)));
-        _username = _user!['username'];
-        _email = _user!['email'];
-        _userId = _user!['userId'];
-        notifyListeners();
+  void _init() {
+    _authService.authStateChanges.listen((User? user) {
+      _user = user;
+      if (user != null) {
+        _databaseService = DatabaseService(uid: user.uid);
       }
-    }
-  }
-
-  Future<Map<String, dynamic>> _parseUserData(String userData) async {
-    // Simple parsing of the stored JSON string
-    return Map<String, dynamic>.from(await jsonDecode(userData));
-  }
-
-  Future<void> _saveUserData() async {
-    if (_user != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_userKey, jsonEncode(_user));
-      await prefs.setBool(_isLoggedInKey, true);
-    }
+      if (!_authReady.isCompleted) {
+        _authReady.complete();
+      }
+      notifyListeners();
+    });
   }
 
   Future<void> checkAuthState() async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      await _loadUserData();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    await _authReady.future;
   }
 
-  /// Automatically logs in a default user without requiring credentials
-  /// This is used to bypass the login screen
-  Future<void> autoLogin() async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      // Create a default user
-      _user = {
-        'username': 'DefaultUser',
-        'email': 'default@example.com',
-        'userId': 'default-user-id',
-      };
-
-      _username = _user!['username'];
-      _email = _user!['email'];
-      _userId = _user!['userId'];
-
-      // Save the user data to SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_userKey, jsonEncode(_user));
-      await prefs.setBool(_isLoggedInKey, true);
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // Add this helper method
-  String _capitalizeFirstLetter(String text) {
-    if (text.isEmpty) return text;
-    return text[0].toUpperCase() + text.substring(1);
-  }
+  // Removed autoLogin as we want real auth now
 
   Future<String?> signUpWithEmail(
       String email, String password, String username) async {
@@ -106,40 +50,24 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      // Check if email already exists
-      final prefs = await SharedPreferences.getInstance();
-      final userData = prefs.getString(_userKey);
+      final credential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-      if (userData != null) {
-        final existingUser = await _parseUserData(userData);
-        if (existingUser['email'] == email) {
-          return 'Email already in use';
-        }
+      if (credential.user != null) {
+        await credential.user!.updateDisplayName(username);
+        _user = FirebaseAuth
+            .instance.currentUser; // Refresh user to get display name
+
+        _databaseService = DatabaseService(uid: _user!.uid);
+        await _databaseService.saveUserData(_user!);
       }
 
-      // Capitalize first letter of username
-      final capitalizedUsername = _capitalizeFirstLetter(username);
-
-      // Generate a unique user ID
-      final userId = DateTime.now().millisecondsSinceEpoch.toString();
-
-      // Create user data
-      _user = {
-        'userId': userId,
-        'username': capitalizedUsername,
-        'email': email,
-        'password': password, // In a real app, you would hash this
-        'createdAt': DateTime.now().toIso8601String(),
-      };
-
-      _username = capitalizedUsername;
-      _email = email;
-      _userId = userId;
-
-      // Save user data
-      await _saveUserData();
-
       return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message;
     } catch (e) {
       return e.toString();
     } finally {
@@ -153,31 +81,14 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final prefs = await SharedPreferences.getInstance();
-      final userData = prefs.getString(_userKey);
-
-      if (userData == null) {
-        return 'No account found with this email';
-      }
-
-      final storedUser = await _parseUserData(userData);
-
-      if (storedUser['email'] != email) {
-        return 'No account found with this email';
-      }
-
-      if (storedUser['password'] != password) {
-        return 'Invalid password';
-      }
-
-      _user = storedUser;
-      _username = storedUser['username'];
-      _email = storedUser['email'];
-      _userId = storedUser['userId'];
-
-      await prefs.setBool(_isLoggedInKey, true);
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message;
     } catch (e) {
       return e.toString();
     } finally {
@@ -191,12 +102,16 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      // Since we're removing Firebase, we'll simulate Google sign-in
-      // In a real app, you would implement proper OAuth flow
+      final credential = await _authService.signInWithGoogle();
 
-      return 'Google Sign In is not available in this version';
+      if (credential?.user != null) {
+        _databaseService = DatabaseService(uid: credential!.user!.uid);
+        await _databaseService.saveUserData(credential.user!);
+        return null;
+      } else {
+        return 'Google sign in cancelled';
+      }
     } catch (e) {
-      debugPrint('Google sign in error: $e');
       return e.toString();
     } finally {
       _isLoading = false;
@@ -209,14 +124,7 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      // Clear user data from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_isLoggedInKey, false);
-
-      _user = null;
-      _username = null;
-      _email = null;
-      _userId = null;
+      await _authService.signOut();
 
       if (context.mounted) {
         // Navigate to login screen and remove all previous routes
@@ -225,6 +133,40 @@ class AuthProvider extends ChangeNotifier {
           (route) => false,
         );
       }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String?> deleteAccount(BuildContext context) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      // Delete user data from Firestore
+      if (_user != null) {
+        await _databaseService.deleteUserData(_user!.uid);
+      }
+
+      // Delete user from Firebase Auth
+      await _user?.delete();
+
+      if (context.mounted) {
+        // Navigate to login screen and remove all previous routes
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+      return null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        return 'Please log out and log in again to delete your account.';
+      }
+      return e.message;
+    } catch (e) {
+      return e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();

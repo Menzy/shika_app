@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:kukuo/common/top_section_title.dart';
+import 'package:kukuo/screens/settings_screen.dart';
+import 'package:iconsax/iconsax.dart';
 
 class TTopSectionContainer extends StatelessWidget {
   final Widget child;
@@ -35,29 +37,6 @@ class TTopSectionContainer extends StatelessWidget {
             ),
           ),
         ),
-        // Fixed logo and text
-        Positioned(
-          top: 50,
-          left: 40,
-          child: Row(
-            children: [
-              SvgPicture.asset(
-                'assets/icons/logo.svg',
-                width: 35,
-                height: 35,
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'Kukuo.',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'Gazpacho',
-                  fontSize: 20,
-                ),
-              ),
-            ],
-          ),
-        ),
         // Scrollable green container - positioned to scroll over the header
         SingleChildScrollView(
           physics: const ClampingScrollPhysics(), // Prevents bounce/over-scroll
@@ -68,7 +47,8 @@ class TTopSectionContainer extends StatelessWidget {
               // Green container with rounded corners
               Container(
                 constraints: BoxConstraints(
-                  minHeight: MediaQuery.of(context).size.height - (imageHeight - 40),
+                  minHeight:
+                      MediaQuery.of(context).size.height - (imageHeight - 40),
                 ),
                 padding: const EdgeInsets.all(22),
                 decoration: const BoxDecoration(
@@ -96,6 +76,57 @@ class TTopSectionContainer extends StatelessWidget {
                   ],
                 ),
               ),
+            ],
+          ),
+        ),
+        // Fixed logo and text
+        Positioned(
+          top: 50,
+          left: 40,
+          right: 0,
+          child: Row(
+            children: [
+              SvgPicture.asset(
+                'assets/icons/logo.svg',
+                width: 35,
+                height: 35,
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Kukuo.',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Gazpacho',
+                  fontSize: 20,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00312F),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF00514F),
+                    ),
+                  ),
+                  child: const Icon(
+                    Iconsax.setting_2,
+                    color: Color(0xFFD8FE00),
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
             ],
           ),
         ),

@@ -8,8 +8,21 @@ import 'providers/user_input_provider.dart';
 
 import 'package:flutter/services.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        throw 'Firebase initialization timed out';
+      },
+    );
+  } catch (e) {
+    // Ignore error and let the app run, AuthProvider will handle missing auth
+    debugPrint('Firebase initialization failed: $e');
+  }
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
   runApp(const MyApp());
 }
