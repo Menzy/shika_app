@@ -9,10 +9,10 @@ class NavigationMenu extends StatefulWidget {
   const NavigationMenu({super.key});
 
   @override
-  State<NavigationMenu> createState() => _NavigationMenuState();
+  State<NavigationMenu> createState() => NavigationMenuState();
 }
 
-class _NavigationMenuState extends State<NavigationMenu> {
+class NavigationMenuState extends State<NavigationMenu> {
   int _selectedIndex = 0;
   bool _isAdding = false;
 
@@ -46,15 +46,37 @@ class _NavigationMenuState extends State<NavigationMenu> {
   void _onAddPressed() {
     if (_selectedIndex == 3 && _isAdding) {
       _addCoinsScreenKey.currentState?.submitInput();
-      setState(() {
-        _isAdding = false;
-      });
     } else {
+      // Clear any existing edit state when starting a new add
+      _addCoinsScreenKey.currentState?.setTransactionToEdit(null);
       setState(() {
         _selectedIndex = 3;
         _isAdding = true;
       });
     }
+  }
+
+  void startEditing(dynamic transaction) {
+    setState(() {
+      _selectedIndex = 3;
+      _isAdding = true;
+    });
+    // Use a post-frame callback to ensure the widget is built before setting state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _addCoinsScreenKey.currentState?.setTransactionToEdit(transaction);
+    });
+  }
+
+  void startAdding(dynamic currency,
+      {bool showDatePicker = true, bool isEditingBalance = false}) {
+    setState(() {
+      _selectedIndex = 3;
+      _isAdding = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _addCoinsScreenKey.currentState?.startAdding(currency,
+          showDatePicker: showDatePicker, isEditingBalance: isEditingBalance);
+    });
   }
 
   @override

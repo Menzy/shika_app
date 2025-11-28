@@ -6,6 +6,7 @@ import 'package:kukuo/providers/user_input_provider.dart';
 import 'package:kukuo/widgets/currency_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:kukuo/widgets/balance_chart.dart';
+import 'package:kukuo/navigation_menu.dart';
 
 class AddedList extends StatefulWidget {
   final List<CurrencyAmount> currencies;
@@ -84,7 +85,11 @@ class _AddedListState extends State<AddedList> {
                   trailing: isExpanded
                       ? GestureDetector(
                           onTap: () {
-                            // TODO: Implement Edit Balance
+                            context
+                                .findAncestorStateOfType<NavigationMenuState>()
+                                ?.startAdding(currency,
+                                    showDatePicker: false,
+                                    isEditingBalance: true);
                           },
                           child: const Text(
                             'Edit Balance',

@@ -4,41 +4,51 @@ import 'package:kukuo/common/top_section_container.dart';
 import 'package:kukuo/providers/user_input_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:kukuo/models/currency_transaction.dart';
+import 'package:kukuo/navigation_menu.dart';
 
 class PaperTrailScreen extends StatelessWidget {
   const PaperTrailScreen({super.key});
 
-  Widget _buildTransactionItem(transaction) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(0, 5, 0, 20),
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: Color(0xFF001817),
-            width: 1.0,
+  Widget _buildTransactionItem(
+      BuildContext context, CurrencyTransaction transaction) {
+    return GestureDetector(
+      onTap: () {
+        context
+            .findAncestorStateOfType<NavigationMenuState>()
+            ?.startEditing(transaction);
+      },
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(0, 15, 0, 15),
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: Color(0xFF001817),
+              width: 1.0,
+            ),
           ),
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            '${transaction.currencyCode} ${transaction.formattedAmount}',
-            style: TextStyle(
-              color: transaction.color,
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '${transaction.currencyCode} ${transaction.formattedAmount}',
+              style: TextStyle(
+                color: transaction.color,
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          Text(
-            DateFormat('dd.MM.yyyy').format(transaction.timestamp),
-            style: TextStyle(
-              color: transaction.color,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+            Text(
+              DateFormat('dd.MM.yyyy').format(transaction.timestamp),
+              style: TextStyle(
+                color: transaction.color,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -58,7 +68,7 @@ class PaperTrailScreen extends StatelessWidget {
       child: Consumer<UserInputProvider>(
         builder: (context, provider, child) {
           // Get transactions and reverse the list to show newest at the top
-          final transactions = provider.getTransactions().reversed.toList();
+          final transactions = provider.transactions.reversed.toList();
 
           return SingleChildScrollView(
             child: Container(
@@ -89,7 +99,8 @@ class PaperTrailScreen extends StatelessWidget {
                       ),
                     )
                   else
-                    ...transactions.map(_buildTransactionItem),
+                    ...transactions
+                        .map((t) => _buildTransactionItem(context, t)),
                 ],
               ),
             ),

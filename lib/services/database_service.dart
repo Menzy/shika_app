@@ -37,16 +37,30 @@ class DatabaseService {
 
   Future<void> saveTransaction(Map<String, dynamic> transactionJson) async {
     if (uid == null) return;
-    // Use timestamp as ID to ensure ordering and uniqueness
-    await transactionsCollection.add(transactionJson);
+    final id = transactionJson['id'];
+    if (id != null) {
+      await transactionsCollection.doc(id).set(transactionJson);
+    } else {
+      await transactionsCollection.add(transactionJson);
+    }
+  }
+
+  Future<void> updateTransaction(Map<String, dynamic> transactionJson) async {
+    if (uid == null) return;
+    final id = transactionJson['id'];
+    if (id != null) {
+      await transactionsCollection.doc(id).update(transactionJson);
+    }
   }
 
   Future<List<Map<String, dynamic>>> loadTransactions() async {
     if (uid == null) return [];
     final snapshot = await transactionsCollection.orderBy('timestamp').get();
-    return snapshot.docs
-        .map((doc) => doc.data() as Map<String, dynamic>)
-        .toList();
+    return snapshot.docs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      data['id'] = doc.id; // Ensure ID is included
+      return data;
+    }).toList();
   }
 
   // --- Currencies ---

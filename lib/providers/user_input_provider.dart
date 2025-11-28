@@ -70,8 +70,13 @@ class UserInputProvider with ChangeNotifier {
 
   void addTransaction(CurrencyTransaction transaction) {
     _transactions.add(transaction);
+    _sortTransactions();
     _updateLegacyTransactions();
     notifyListeners();
+  }
+
+  void _sortTransactions() {
+    _transactions.sort((a, b) => a.timestamp.compareTo(b.timestamp));
   }
 
   List<CurrencyTransaction> getTransactionsByCurrency(String currencyCode) {
@@ -210,6 +215,7 @@ class UserInputProvider with ChangeNotifier {
     Map<String, double> exchangeRates,
     String localCurrencyCode, {
     bool isSubtraction = false,
+    DateTime? date,
   }) async {
     try {
       if (!BalanceCalculatorService.isValidCurrencyAmount(
@@ -217,15 +223,21 @@ class UserInputProvider with ChangeNotifier {
         return false;
       }
 
+      // Generate a simple unique ID
+      final String id =
+          '${DateTime.now().millisecondsSinceEpoch}_${(currency.amount * 100).toInt()}';
+
       final transaction = CurrencyTransaction(
+        id: id,
         currencyCode: currency.code,
         amount: isSubtraction ? -currency.amount.abs() : currency.amount,
-        timestamp: DateTime.now(),
+        timestamp: date ?? DateTime.now(),
         type: isSubtraction ? 'Subtraction' : 'Addition',
       );
 
       // Save transaction to local storage
       _transactions.add(transaction);
+      _sortTransactions();
       _updateLegacyTransactions();
       await _saveTransactions();
 
@@ -243,6 +255,44 @@ class UserInputProvider with ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('Error adding/subtracting currency: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateTransaction(
+    CurrencyTransaction updatedTransaction,
+    Map<String, double> exchangeRates,
+    String localCurrencyCode,
+  ) async {
+    try {
+      final index =
+          _transactions.indexWhere((t) => t.id == updatedTransaction.id);
+      if (index != -1) {
+        _transactions[index] = updatedTransaction;
+        _sortTransactions();
+        _updateLegacyTransactions();
+        await _saveTransactions();
+
+        // If logged in, update in Firestore
+        if (_databaseService != null) {
+          await _databaseService!
+              .updateTransaction(updatedTransaction.toJson());
+        }
+
+        // Update currency totals
+        _updateCurrencyTotalsFromTransactions();
+
+        // Update the balance history (recalculate everything to be safe)
+        await recalculateHistory(exchangeRates, localCurrencyCode);
+
+        // Notify listeners about the transaction
+        _transactionStreamController.add(_transactions);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error updating transaction: $e');
       return false;
     }
   }
@@ -282,6 +332,7 @@ class UserInputProvider with ChangeNotifier {
 
       if (loadedTransactions != null) {
         _transactions = loadedTransactions;
+        _sortTransactions();
         _updateLegacyTransactions();
         _transactionStreamController.add(_transactions);
 
