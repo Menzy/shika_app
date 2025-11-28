@@ -29,7 +29,7 @@ class _BalanceChartState extends State<BalanceChart> {
     }
 
     final filteredData = _getFilteredData();
-    
+
     if (filteredData.balances.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -76,7 +76,8 @@ class _BalanceChartState extends State<BalanceChart> {
                       const SizedBox(width: 8),
                       Icon(
                         isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                        color: isPositive ? Colors.green : const Color(0xFFFF6B47),
+                        color:
+                            isPositive ? Colors.green : const Color(0xFFFF6B47),
                         size: 24,
                       ),
                     ],
@@ -86,9 +87,9 @@ class _BalanceChartState extends State<BalanceChart> {
               _buildFilterDropdown(),
             ],
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Chart
           SizedBox(
             height: 180,
@@ -178,7 +179,9 @@ class _BalanceChartState extends State<BalanceChart> {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? const Color(0xFFD8FE00) : const Color(0xFFFAFFB5),
+                color: isSelected
+                    ? const Color(0xFFD8FE00)
+                    : const Color(0xFFFAFFB5),
                 fontSize: 16,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
@@ -194,8 +197,6 @@ class _BalanceChartState extends State<BalanceChart> {
       ),
     );
   }
-
-
 
   String _getFilterLabel(ChartTimeFilter filter) {
     switch (filter) {
@@ -238,7 +239,7 @@ class _BalanceChartState extends State<BalanceChart> {
     final filteredTimes = <DateTime>[];
 
     for (int i = 0; i < widget.timeHistory.length; i++) {
-      if (widget.timeHistory[i].isAfter(cutoffDate) || 
+      if (widget.timeHistory[i].isAfter(cutoffDate) ||
           widget.timeHistory[i].isAtSameMomentAs(cutoffDate)) {
         filteredBalances.add(widget.balanceHistory[i]);
         filteredTimes.add(widget.timeHistory[i]);
@@ -268,7 +269,7 @@ class _BalanceChartState extends State<BalanceChart> {
   double _calculateGrowthPercentage(
       ({List<double> balances, List<DateTime> times}) data) {
     if (data.balances.isEmpty) return 0;
-    
+
     // If only one data point, no growth
     if (data.balances.length == 1) {
       return 0;
@@ -277,7 +278,7 @@ class _BalanceChartState extends State<BalanceChart> {
     // Find the first non-zero balance to use as baseline
     double? baselineBalance;
     int baselineIndex = 0;
-    
+
     for (int i = 0; i < data.balances.length; i++) {
       if (data.balances[i].abs() > 0.01) {
         baselineBalance = data.balances[i];
@@ -285,10 +286,10 @@ class _BalanceChartState extends State<BalanceChart> {
         break;
       }
     }
-    
+
     // If all balances are zero, no growth
     if (baselineBalance == null) return 0;
-    
+
     // If baseline is the last point, compare with previous or return 0
     if (baselineIndex == data.balances.length - 1) {
       // Compare with the point before if it exists
@@ -300,10 +301,11 @@ class _BalanceChartState extends State<BalanceChart> {
       }
       return 0;
     }
-    
+
     final last = data.balances.last;
-    final percentChange = ((last - baselineBalance) / baselineBalance.abs()) * 100;
-    
+    final percentChange =
+        ((last - baselineBalance) / baselineBalance.abs()) * 100;
+
     return percentChange;
   }
 }
@@ -327,7 +329,7 @@ class ChartPainter extends CustomPainter {
     final minValue = balances.reduce(math.min);
     final maxValue = balances.reduce(math.max);
     final range = maxValue - minValue;
-    
+
     // Add padding to the range
     final paddedMin = minValue - (range * 0.1);
     final paddedMax = maxValue + (range * 0.1);
@@ -338,14 +340,19 @@ class ChartPainter extends CustomPainter {
     final points = <Offset>[];
 
     for (int i = 0; i < balances.length; i++) {
-      final x = (i / (balances.length - 1)) * size.width;
-      final normalizedValue = paddedRange == 0 
-          ? 0.5 
-          : (balances[i] - paddedMin) / paddedRange;
+      final double x;
+      if (balances.length > 1) {
+        x = (i / (balances.length - 1)) * size.width;
+      } else {
+        x = size.width / 2; // Center the single point
+      }
+
+      final normalizedValue =
+          paddedRange == 0 ? 0.5 : (balances[i] - paddedMin) / paddedRange;
       final y = size.height - (normalizedValue * size.height);
-      
+
       points.add(Offset(x, y));
-      
+
       if (i == 0) {
         path.moveTo(x, y);
       } else {
@@ -363,13 +370,16 @@ class ChartPainter extends CustomPainter {
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
-        (isPositive ? Colors.green : const Color(0xFFFF6B47)).withValues(alpha: 0.3),
-        (isPositive ? Colors.green : const Color(0xFFFF6B47)).withValues(alpha: 0.0),
+        (isPositive ? Colors.green : const Color(0xFFFF6B47))
+            .withValues(alpha: 0.3),
+        (isPositive ? Colors.green : const Color(0xFFFF6B47))
+            .withValues(alpha: 0.0),
       ],
     );
 
     final gradientPaint = Paint()
-      ..shader = gradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..shader =
+          gradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height))
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(gradientPath, gradientPaint);
@@ -391,7 +401,7 @@ class ChartPainter extends CustomPainter {
         ..style = PaintingStyle.fill;
 
       canvas.drawCircle(point, 3, pointPaint);
-      
+
       // White center
       final centerPaint = Paint()
         ..color = Colors.white

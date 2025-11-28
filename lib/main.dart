@@ -6,8 +6,11 @@ import 'package:provider/provider.dart';
 import 'providers/exchange_rate_provider.dart';
 import 'providers/user_input_provider.dart';
 
+import 'package:flutter/services.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
   runApp(const MyApp());
 }
 
@@ -26,6 +29,12 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(fontFamily: 'Euclid'),
         title: 'Pot of Gold',
+        builder: (context, child) {
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle.light,
+            child: child!,
+          );
+        },
         home: const SplashScreen(),
       ),
     );

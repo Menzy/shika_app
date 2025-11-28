@@ -31,7 +31,6 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
   final TextEditingController _amountController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String _selectedCurrency = 'GHS';
-  bool isSubtraction = false;
 
   @override
   void initState() {
@@ -60,10 +59,6 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
     WidgetsBinding.instance.removeObserver(this);
     _amountController.dispose();
     super.dispose();
-  }
-
-  void _clearInput() {
-    _amountController.clear();
   }
 
   void _showErrorSnackbar(String message) {
@@ -101,7 +96,6 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
   void _resetFields() {
     setState(() {
       _amountController.text = '0';
-      isSubtraction = false;
       _selectedCurrency = 'GHS';
     });
   }
@@ -110,9 +104,9 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: TTopSectionContainer(
-        title: Text(
-          isSubtraction ? 'Subtract Coins' : 'Add Coins',
-          style: const TextStyle(
+        title: const Text(
+          'Add Coins',
+          style: TextStyle(
             fontFamily: 'Gazpacho',
             fontSize: 30,
             fontWeight: FontWeight.bold,
@@ -131,70 +125,12 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Add operation toggle
-                  // Operation Toggle
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      color: TColors.primaryBGColor,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => isSubtraction = false),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: !isSubtraction
-                                    ? const Color(0xFF008F8A)
-                                    : TColors.primaryBGColor,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Text(
-                                'Add',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Color(0xFFFAFFB5),
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => isSubtraction = true),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: isSubtraction
-                                    ? const Color(0xFF008F8A)
-                                    : TColors.primaryBGColor,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Text(
-                                'Subtract',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Color(0xFFFAFFB5),
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  TSectionHeading(
-                    title:
-                        isSubtraction ? 'Amount to subtract' : 'Amount to add',
+                  const SizedBox(height: 5),
+                  const TSectionHeading(
+                    title: 'Amount to add',
                     showActionButton: false,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
                   TextFormField(
                     controller: _amountController,
                     readOnly: true,
@@ -203,14 +139,23 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
                       fillColor: TColors.primaryBGColor,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF008F8A),
+                          width: 2.0,
+                        ),
                       ),
                       prefixIcon: Padding(
                         padding: const EdgeInsets.all(10.0),
                         child: GestureDetector(
                           onTap: () async {
                             if (!mounted) return;
-                            
-                            final selectedCurrency = await showCurrencyBottomSheet(context);
+
+                            final selectedCurrency =
+                                await showCurrencyBottomSheet(context);
 
                             if (selectedCurrency != null && mounted) {
                               setState(() {
@@ -246,13 +191,13 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
                       fontWeight: FontWeight.w500,
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty || value == '0') {
+                      if (value == null || value.isEmpty) {
                         return 'Please enter a valid amount';
                       }
                       return null;
                     },
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
                   Center(
                     child: Container(
                       padding: const EdgeInsets.all(10),
@@ -276,14 +221,15 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
   }
 
   void submitInput() {
+    // Clear any previous snackbars
+    ScaffoldMessenger.of(context).clearSnackBars();
+
     if (_formKey.currentState!.validate()) {
       final expression = _amountController.text;
       double? amount = _evaluateExpression(expression);
 
-      if (amount != null && amount > 0) {
-        if (isSubtraction) {
-          amount = -amount; // Make the amount negative for subtraction
-        }
+      if (amount != null && amount != 0) {
+        final isSubtraction = amount < 0;
 
         final currencyDetails = localCurrencyList.firstWhere(
           (c) => c.code == _selectedCurrency,
@@ -318,11 +264,14 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
             Provider.of<ExchangeRateProvider>(context, listen: false);
 
         // Use the saved local currency instead of hardcoded USD
-        _addCurrencyWithSavedPreference(
-            userInputProvider, exchangeRateProvider, updatedCurrency);
+        _addCurrencyWithSavedPreference(userInputProvider, exchangeRateProvider,
+            updatedCurrency, isSubtraction);
       } else {
-        _showErrorSnackbar('Invalid input!');
-        _clearInput();
+        if (amount == 0) {
+          _showErrorSnackbar('Amount cannot be zero');
+        } else {
+          _showErrorSnackbar('Invalid input expression');
+        }
       }
     }
   }
@@ -330,7 +279,8 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
   Future<void> _addCurrencyWithSavedPreference(
       UserInputProvider userInputProvider,
       ExchangeRateProvider exchangeRateProvider,
-      CurrencyAmount updatedCurrency) async {
+      CurrencyAmount updatedCurrency,
+      bool isSubtraction) async {
     final localCurrencyCode =
         await CurrencyPreferenceService.loadSelectedCurrency();
 

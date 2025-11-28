@@ -20,7 +20,6 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
   @override
   void initState() {
     super.initState();
-    widget.inputController.text = widget.inputController.text;
   }
 
   void _onKeyTap(String key) {
@@ -85,7 +84,7 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
         crossAxisCount: 4,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        padding: EdgeInsets.zero,
+        padding: const EdgeInsets.all(4.0),
         children: [
           _buildSymbol('C', _onReset),
           _buildSymbol('-', () => _onKeyTap('-')),

@@ -200,34 +200,32 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 40),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Consumer<UserInputProvider>(
-                  builder: (context, userInputProvider, _) {
-                    return userInputProvider.currencies.isEmpty
-                        ? _buildWelcomeMessage()
-                        : _buildAssetsSection(userInputProvider);
-                  },
-                ),
-                const SizedBox(height: 16),
-                Consumer<UserInputProvider>(
-                  builder: (context, userInputProvider, _) {
-                    return userInputProvider.currencies.isEmpty
-                        ? const SizedBox.shrink()
-                        : BalanceChart(
-                            balanceHistory: userInputProvider.balanceHistory,
-                            timeHistory: userInputProvider.timeHistory,
-                            currencySymbol: Currency.getSymbolForCode(_selectedLocalCurrency),
-                          );
-                  },
-                ),
-              ],
-            ),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Consumer<UserInputProvider>(
+                builder: (context, userInputProvider, _) {
+                  return userInputProvider.currencies.isEmpty
+                      ? _buildWelcomeMessage()
+                      : _buildAssetsSection(userInputProvider);
+                },
+              ),
+              const SizedBox(height: 16),
+              Consumer<UserInputProvider>(
+                builder: (context, userInputProvider, _) {
+                  return userInputProvider.currencies.isEmpty
+                      ? const SizedBox.shrink()
+                      : BalanceChart(
+                          balanceHistory: userInputProvider.balanceHistory,
+                          timeHistory: userInputProvider.timeHistory,
+                          currencySymbol: Currency.getSymbolForCode(_selectedLocalCurrency),
+                        );
+                },
+              ),
+            ],
           ),
         ),
       ),

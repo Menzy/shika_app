@@ -10,42 +10,35 @@ class PaperTrailScreen extends StatelessWidget {
 
   Widget _buildTransactionItem(transaction) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-      margin: const EdgeInsets.symmetric(vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFF001817),
-        borderRadius: BorderRadius.circular(10.0),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${transaction.currencyCode} ${transaction.formattedAmount}',
-                style: TextStyle(
-                  color: transaction.color,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            Icon(
-              transaction.type == 'Addition'
-                  ? Icons.arrow_upward
-                  : Icons.arrow_downward,
-              color: transaction.color,
-              size: 16,
-            ),
-          ],
-        ),
-        trailing: Text(
-          DateFormat('MMM dd, yyyy').format(transaction.timestamp),
-          style: TextStyle(
-            color: transaction.color,
-            fontSize: 13,
+      padding: const EdgeInsets.fromLTRB(0, 5, 0, 20),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: Color(0xFF001817),
+            width: 1.0,
           ),
         ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '${transaction.currencyCode} ${transaction.formattedAmount}',
+            style: TextStyle(
+              color: transaction.color,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            DateFormat('dd.MM.yyyy').format(transaction.timestamp),
+            style: TextStyle(
+              color: transaction.color,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

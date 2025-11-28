@@ -22,6 +22,7 @@ class TTopSectionContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
+        // Fixed background image at the top
         Positioned(
           top: 0,
           left: 0,
@@ -34,7 +35,7 @@ class TTopSectionContainer extends StatelessWidget {
             ),
           ),
         ),
-        // Positioned widget for logo and text
+        // Fixed logo and text
         Positioned(
           top: 50,
           left: 40,
@@ -57,40 +58,45 @@ class TTopSectionContainer extends StatelessWidget {
             ],
           ),
         ),
-        Positioned(
-          top: imageHeight - 40,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Container(
-            padding: const EdgeInsets.all(22),
-            decoration: const BoxDecoration(
-              color: Color(0xFF001817),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(30),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TopSectionTitle(
-                  title: title, // Title passed as a widget
+        // Scrollable green container - positioned to scroll over the header
+        SingleChildScrollView(
+          physics: const ClampingScrollPhysics(), // Prevents bounce/over-scroll
+          child: Column(
+            children: [
+              // Transparent spacer to start the green container at the right position
+              SizedBox(height: imageHeight - 40),
+              // Green container with rounded corners
+              Container(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height - (imageHeight - 40),
                 ),
-                const SizedBox(height: 35), // Spacing before content
-                // Fixed content that doesn't scroll (if provided)
-                if (fixedContent != null) ...[
-                  fixedContent!,
-                  const SizedBox(height: 16),
-                ],
-                // Scrollable content
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: child,
+                padding: const EdgeInsets.all(22),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF001817),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(30),
+                    topRight: Radius.circular(30),
                   ),
                 ),
-              ],
-            ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TopSectionTitle(
+                      title: title, // Title passed as a widget
+                    ),
+                    const SizedBox(height: 35), // Spacing before content
+                    // Fixed content that doesn't scroll (if provided)
+                    if (fixedContent != null) ...[
+                      fixedContent!,
+                      const SizedBox(height: 16),
+                    ],
+                    // Content
+                    child,
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ],
