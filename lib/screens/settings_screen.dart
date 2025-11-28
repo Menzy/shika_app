@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:kukuo/common/top_section_container.dart';
 import 'package:kukuo/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
@@ -100,6 +101,28 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 32),
+
+              // Privacy Policy Button
+              _buildSettingsButton(
+                context,
+                icon: Iconsax.shield_tick,
+                label: 'Privacy Policy',
+                color: Colors.white,
+                onTap: () =>
+                    _launchUrl('https://www.apple.com/legal/privacy/en-ww/'),
+              ),
+              const SizedBox(height: 16),
+
+              // Terms of Service Button
+              _buildSettingsButton(
+                context,
+                icon: Iconsax.document_text,
+                label: 'Terms of Service',
+                color: Colors.white,
+                onTap: () => _launchUrl(
+                    'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'),
+              ),
+              const SizedBox(height: 16),
 
               // Logout Button
               _buildSettingsButton(
@@ -206,5 +229,12 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.inAppWebView)) {
+      throw Exception('Could not launch $url');
+    }
   }
 }
