@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   // Stream of auth changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -16,16 +16,15 @@ class AuthService {
   Future<UserCredential?> signInWithGoogle() async {
     try {
       // Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser =
+          await _googleSignIn.authenticate();
       if (googleUser == null) return null; // The user canceled the sign-in
 
       // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
       // Create a new credential
       final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
