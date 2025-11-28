@@ -105,8 +105,9 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
           _buildSymbol('=', _onEquals),
           _buildKey('0', () => _onKeyTap('0')),
           _buildKey('00', () => _onKeyTap('00')),
-          _buildKey('000', () => _onKeyTap('000')),
           _buildKey('.', () => _onKeyTap('.')),
+          _buildIconKey(Icons.check, widget.onSubmit,
+              color: TColors.primaryBGColor),
         ],
       ),
     );

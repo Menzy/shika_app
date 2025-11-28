@@ -53,6 +53,7 @@ class _AllAssetsScreenState extends State<AllAssetsScreen> {
                     userInputProvider.selectedCurrency);
 
             return SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 70),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(

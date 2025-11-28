@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:iconsax/iconsax.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kukuo/screens/add_coins_screen.dart.dart';
 import 'package:kukuo/screens/home_screen.dart';
 import 'package:kukuo/screens/all_assets_screen.dart';
@@ -82,7 +82,7 @@ class NavigationMenuState extends State<NavigationMenu> {
   @override
   Widget build(BuildContext context) {
     double pillWidth = MediaQuery.of(context).size.width * 0.43;
-    const double buttonSize = 50;
+    const double buttonSize = 45;
 
     return Scaffold(
       body: Stack(
@@ -135,24 +135,36 @@ class NavigationMenuState extends State<NavigationMenu> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   IconButton(
-                    icon: Icon(Iconsax.home,
-                        color: _selectedIndex == 0
-                            ? const Color(0xFFD8FE00)
-                            : const Color(0xFF00514F)),
+                    icon: SvgPicture.asset(
+                      'assets/icons/Home.svg',
+                      colorFilter: ColorFilter.mode(
+                          _selectedIndex == 0
+                              ? const Color(0xFFD8FE00)
+                              : const Color(0xFF00514F),
+                          BlendMode.srcIn),
+                    ),
                     onPressed: () => _onItemTapped(0),
                   ),
                   IconButton(
-                    icon: Icon(Iconsax.chart,
-                        color: _selectedIndex == 1
-                            ? const Color(0xFFD8FE00)
-                            : const Color(0xFF00514F)),
+                    icon: SvgPicture.asset(
+                      'assets/icons/assets.svg',
+                      colorFilter: ColorFilter.mode(
+                          _selectedIndex == 1
+                              ? const Color(0xFFD8FE00)
+                              : const Color(0xFF00514F),
+                          BlendMode.srcIn),
+                    ),
                     onPressed: () => _onItemTapped(1),
                   ),
                   IconButton(
-                    icon: Icon(Iconsax.personalcard,
-                        color: _selectedIndex == 2
-                            ? const Color(0xFFD8FE00)
-                            : const Color(0xFF00514F)),
+                    icon: SvgPicture.asset(
+                      'assets/icons/papertrail.svg',
+                      colorFilter: ColorFilter.mode(
+                          _selectedIndex == 2
+                              ? const Color(0xFFD8FE00)
+                              : const Color(0xFF00514F),
+                          BlendMode.srcIn),
+                    ),
                     onPressed: () => _onItemTapped(2),
                   ),
                 ],

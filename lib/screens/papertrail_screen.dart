@@ -71,6 +71,7 @@ class PaperTrailScreen extends StatelessWidget {
           final transactions = provider.transactions.reversed.toList();
 
           return SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 70),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(

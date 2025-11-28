@@ -219,7 +219,7 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
                         title: 'Amount to add',
                         showActionButton: false,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 5),
                       TextFormField(
                         controller: _amountController,
                         readOnly: true,
@@ -272,24 +272,6 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
                       ),
                       if (_isKeyboardVisible) ...[
                         const SizedBox(height: 10),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _isKeyboardVisible = false;
-                              });
-                            },
-                            child: const Text(
-                              'Done',
-                              style: TextStyle(
-                                color: Color(0xFFFAFFB5),
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
                         Center(
                           child: Container(
                             padding: const EdgeInsets.all(10),
@@ -300,17 +282,21 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
                             ),
                             child: CustomKeyboard(
                               inputController: _amountController,
-                              onSubmit: submitInput,
+                              onSubmit: () {
+                                setState(() {
+                                  _isKeyboardVisible = false;
+                                });
+                              },
                             ),
                           ),
                         ),
                       ],
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 10),
                       const TSectionHeading(
                         title: 'Currency',
                         showActionButton: false,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 5),
                       GestureDetector(
                         onTap: () async {
                           if (!mounted) return;
@@ -356,13 +342,13 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 10),
                       if (_showDatePicker) ...[
                         const TSectionHeading(
                           title: 'Date',
                           showActionButton: false,
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 5),
                         CustomDatePicker(
                           initialDate: _selectedDate,
                           onDateSelected: (date) {
