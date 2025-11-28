@@ -4,6 +4,9 @@ import 'package:kukuo/common/top_section_container.dart';
 import 'package:kukuo/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:kukuo/screens/currency_screen.dart';
+import 'package:kukuo/providers/user_input_provider.dart';
+import 'package:kukuo/providers/exchange_rate_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -101,6 +104,22 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 32),
+
+              // Set Default Currency Button
+              Consumer<AuthProvider>(
+                builder: (context, auth, _) {
+                  // We need UserInputProvider to set the currency
+                  // But we can access it via Provider.of in the onTap
+                  return _buildSettingsButton(
+                    context,
+                    icon: Iconsax.money_change,
+                    label: 'Set Default Currency',
+                    color: Colors.white,
+                    onTap: () => _showCurrencyPicker(context),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
 
               // Privacy Policy Button
               _buildSettingsButton(
@@ -235,6 +254,22 @@ class SettingsScreen extends StatelessWidget {
     final Uri url = Uri.parse(urlString);
     if (!await launchUrl(url, mode: LaunchMode.inAppWebView)) {
       throw Exception('Could not launch $url');
+    }
+  }
+
+  Future<void> _showCurrencyPicker(BuildContext context) async {
+    final userInputProvider =
+        Provider.of<UserInputProvider>(context, listen: false);
+    final exchangeRateProvider =
+        Provider.of<ExchangeRateProvider>(context, listen: false);
+
+    final selectedCurrency = await showCurrencyBottomSheet(context);
+
+    if (selectedCurrency != null && context.mounted) {
+      await userInputProvider.setSelectedCurrency(
+        selectedCurrency,
+        exchangeRateProvider.exchangeRates,
+      );
     }
   }
 }

@@ -70,6 +70,25 @@ class DatabaseService {
     return null;
   }
 
+  Future<void> saveSelectedCurrency(String currencyCode) async {
+    if (uid == null) return;
+    await dataDocument.set({
+      'selectedCurrency': currencyCode,
+    }, SetOptions(merge: true));
+  }
+
+  Future<String?> loadSelectedCurrency() async {
+    if (uid == null) return null;
+    final doc = await dataDocument.get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data() as Map<String, dynamic>;
+      if (data.containsKey('selectedCurrency')) {
+        return data['selectedCurrency'] as String;
+      }
+    }
+    return null;
+  }
+
   // --- Balance History ---
 
   Future<void> saveBalanceHistory(

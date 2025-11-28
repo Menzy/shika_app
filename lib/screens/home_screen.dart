@@ -5,11 +5,10 @@ import 'package:kukuo/common/section_heading.dart';
 import 'package:kukuo/common/top_section_container.dart';
 import 'package:kukuo/providers/exchange_rate_provider.dart';
 import 'package:kukuo/providers/user_input_provider.dart';
-import 'package:kukuo/screens/currency_screen.dart';
+
 import 'package:kukuo/widgets/total_balance.dart';
 import 'package:kukuo/widgets/added_list.dart';
 import 'package:kukuo/widgets/balance_chart.dart';
-import 'package:kukuo/services/currency_preference_service.dart';
 import 'package:kukuo/models/currency_model.dart';
 import 'package:kukuo/services/database_service.dart';
 
@@ -23,7 +22,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _selectedLocalCurrency = 'USD';
   bool _isLoading = true;
   String? _error;
 
@@ -56,15 +54,6 @@ class _HomeScreenState extends State<HomeScreen> {
     userInputProvider.setExchangeRateProvider(exchangeRateProvider);
 
     try {
-      // Load saved currency preference first
-      final savedCurrency =
-          await CurrencyPreferenceService.loadSelectedCurrency();
-      if (mounted) {
-        setState(() {
-          _selectedLocalCurrency = savedCurrency;
-        });
-      }
-
       // Load transactions first (this also recalculates currencies)
       await userInputProvider.loadTransactions();
 
@@ -74,7 +63,8 @@ class _HomeScreenState extends State<HomeScreen> {
       // Recalculate balance history with current exchange rates
       if (exchangeRateProvider.exchangeRates.isNotEmpty) {
         await userInputProvider.recalculateHistory(
-            exchangeRateProvider.exchangeRates, _selectedLocalCurrency);
+            exchangeRateProvider.exchangeRates,
+            userInputProvider.selectedCurrency);
       }
     } catch (e) {
       if (mounted) {
@@ -100,34 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error fetching data: $e')),
         );
-      }
-    }
-  }
-
-  void _selectLocalCurrency() async {
-    if (!mounted) return;
-
-    final selectedCurrency = await showCurrencyBottomSheet(context);
-
-    if (selectedCurrency != null && mounted) {
-      setState(() {
-        _selectedLocalCurrency = selectedCurrency;
-      });
-
-      // Save the selected currency to preferences
-      await CurrencyPreferenceService.saveSelectedCurrency(selectedCurrency);
-
-      if (!mounted) return;
-
-      // Recalculate balance history with the new currency
-      final exchangeRateProvider =
-          Provider.of<ExchangeRateProvider>(context, listen: false);
-      final userInputProvider =
-          Provider.of<UserInputProvider>(context, listen: false);
-
-      if (exchangeRateProvider.exchangeRates.isNotEmpty) {
-        await userInputProvider.recalculateHistory(
-            exchangeRateProvider.exchangeRates, selectedCurrency);
       }
     }
   }
@@ -175,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
           AddedList(
             currencies:
                 userInputProvider.getConsolidatedCurrencies().take(4).toList(),
-            selectedLocalCurrency: _selectedLocalCurrency,
+            selectedLocalCurrency: userInputProvider.selectedCurrency,
             exchangeRateProvider: Provider.of<ExchangeRateProvider>(context),
             isAllAssetsScreen: false,
           ),
@@ -216,11 +178,10 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Consumer<UserInputProvider>(
               builder: (context, userInputProvider, _) => TotalBalance(
-                selectedLocalCurrency: _selectedLocalCurrency,
+                selectedLocalCurrency: userInputProvider.selectedCurrency,
                 userInputProvider: userInputProvider,
                 exchangeRateProvider:
                     Provider.of<ExchangeRateProvider>(context),
-                onTap: _selectLocalCurrency,
               ),
             ),
           ],
@@ -246,8 +207,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       : BalanceChart(
                           balanceHistory: userInputProvider.balanceHistory,
                           timeHistory: userInputProvider.timeHistory,
-                          currencySymbol:
-                              Currency.getSymbolForCode(_selectedLocalCurrency),
+                          currencySymbol: Currency.getSymbolForCode(
+                              userInputProvider.selectedCurrency),
                         );
                 },
               ),

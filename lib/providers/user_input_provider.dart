@@ -6,9 +6,11 @@ import 'package:kukuo/models/transaction_model.dart';
 import 'package:kukuo/services/data_storage_service.dart';
 import 'package:kukuo/services/balance_calculator_service.dart';
 import 'package:kukuo/services/database_service.dart';
+import 'package:kukuo/services/currency_preference_service.dart';
 import 'dart:async';
 
 class UserInputProvider with ChangeNotifier {
+  String _selectedCurrency = 'USD';
   List<CurrencyAmount> _currencies = [];
   List<double> _balanceHistory = [];
   List<DateTime> _timeHistory = [];
@@ -23,6 +25,7 @@ class UserInputProvider with ChangeNotifier {
 
   DatabaseService? _databaseService;
 
+  String get selectedCurrency => _selectedCurrency;
   List<CurrencyAmount> get currencies => _currencies;
   List<double> get balanceHistory => _balanceHistory;
   List<DateTime> get timeHistory => _timeHistory;
@@ -50,6 +53,8 @@ class UserInputProvider with ChangeNotifier {
     _transactions = [];
     _legacyTransactions = [];
     _databaseService = null;
+    _databaseService = null;
+    _selectedCurrency = 'USD'; // Reset to default on logout
     notifyListeners();
   }
 
@@ -125,6 +130,41 @@ class UserInputProvider with ChangeNotifier {
       debugPrint('Error loading currencies: $e');
       // Don't rethrow, just log
     }
+
+    // Load selected currency
+    if (_databaseService != null) {
+      final savedCurrency = await _databaseService!.loadSelectedCurrency();
+      if (savedCurrency != null) {
+        _selectedCurrency = savedCurrency;
+      } else {
+        // If no remote currency, try local but prioritize default if fresh login
+        // Actually, let's stick to local if remote is missing, or default
+        _selectedCurrency =
+            await CurrencyPreferenceService.loadSelectedCurrency();
+      }
+    } else {
+      _selectedCurrency =
+          await CurrencyPreferenceService.loadSelectedCurrency();
+    }
+    notifyListeners();
+  }
+
+  Future<void> setSelectedCurrency(
+      String currencyCode, Map<String, double> exchangeRates) async {
+    if (_selectedCurrency == currencyCode) return;
+
+    _selectedCurrency = currencyCode;
+    notifyListeners();
+
+    // Save preference
+    await CurrencyPreferenceService.saveSelectedCurrency(currencyCode);
+
+    if (_databaseService != null) {
+      await _databaseService!.saveSelectedCurrency(currencyCode);
+    }
+
+    // Recalculate history with new currency
+    await recalculateHistory(exchangeRates, currencyCode);
   }
 
   Future<bool> addCurrency(
