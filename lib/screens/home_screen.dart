@@ -8,6 +8,8 @@ import 'package:kukuo/providers/user_input_provider.dart';
 
 import 'package:kukuo/widgets/total_balance.dart';
 import 'package:kukuo/widgets/added_list.dart';
+import 'package:kukuo/screens/settings_screen.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:kukuo/widgets/balance_chart.dart';
 import 'package:kukuo/models/currency_model.dart';
 import 'package:kukuo/services/database_service.dart';
@@ -184,6 +186,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     Provider.of<ExchangeRateProvider>(context),
               ),
             ),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00312F),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF00514F),
+                  ),
+                ),
+                child: const Icon(
+                  Iconsax.setting_2,
+                  color: Color(0xFFD8FE00),
+                  size: 20,
+                ),
+              ),
+            ),
           ],
         ),
         child: Padding(
@@ -194,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Consumer<UserInputProvider>(
                 builder: (context, userInputProvider, _) {
-                  return userInputProvider.currencies.isEmpty
+                  final chart = userInputProvider.currencies.isEmpty
                       ? const SizedBox.shrink()
                       : BalanceChart(
                           balanceHistory: userInputProvider.balanceHistory,
@@ -203,14 +230,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           currencySymbol: Currency.getSymbolForCode(
                               userInputProvider.selectedCurrency),
                         );
-                },
-              ),
-              const SizedBox(height: 16),
-              Consumer<UserInputProvider>(
-                builder: (context, userInputProvider, _) {
-                  return userInputProvider.currencies.isEmpty
+
+                  final assets = userInputProvider.currencies.isEmpty
                       ? _buildWelcomeMessage(context)
                       : _buildAssetsSection(userInputProvider);
+
+                  return Column(
+                    children: userInputProvider.showChartAboveAssets
+                        ? [chart, const SizedBox(height: 16), assets]
+                        : [assets, const SizedBox(height: 16), chart],
+                  );
                 },
               ),
             ],

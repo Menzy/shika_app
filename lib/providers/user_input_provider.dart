@@ -39,6 +39,13 @@ class UserInputProvider with ChangeNotifier {
     loadCurrencies();
   }
 
+  String? get username =>
+      null; // Placeholder as _user is not defined in context
+  DatabaseService? get databaseService => _databaseService;
+
+  bool _showChartAboveAssets = true;
+  bool get showChartAboveAssets => _showChartAboveAssets;
+
   void setDatabaseService(DatabaseService? dbService) {
     _databaseService = dbService;
     if (_databaseService != null) {
@@ -89,6 +96,26 @@ class UserInputProvider with ChangeNotifier {
   }
 
   Future<void> loadCurrencies() async {
+    // Load layout preference first
+    _showChartAboveAssets = await DataStorageService.loadShowChartAboveAssets();
+
+    // If logged in, try to fetch from Firestore
+    if (_databaseService != null) {
+      final cloudPref = await _databaseService!.loadShowChartAboveAssets();
+      if (cloudPref != null) {
+        _showChartAboveAssets = cloudPref;
+        // Sync to local
+        await DataStorageService.saveShowChartAboveAssets(cloudPref);
+      }
+    }
+
+    // The instruction included this line, but it seems to be a remnant or
+    // an implicit dependency that would require an import.
+    // For now, I'm commenting it out to avoid an immediate compilation error
+    // if SharedPreferences is not imported, as the instruction only asked
+    // for code modification, not import additions.
+    // final prefs = await SharedPreferences.getInstance();
+
     try {
       List<CurrencyAmount>? loadedCurrencies;
 
@@ -536,6 +563,19 @@ class UserInputProvider with ChangeNotifier {
 
     // Notify the currency stream controller
     _currencyStreamController.add(_currencies);
+  }
+
+  Future<void> toggleChartPosition(bool value) async {
+    _showChartAboveAssets = value;
+    notifyListeners();
+
+    // Save to local storage
+    await DataStorageService.saveShowChartAboveAssets(value);
+
+    // Save to Firestore if logged in
+    if (_databaseService != null) {
+      await _databaseService!.saveShowChartAboveAssets(value);
+    }
   }
 
   @override

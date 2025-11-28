@@ -141,4 +141,15 @@ class DataStorageService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
+
+  // Layout preference storage
+  static Future<void> saveShowChartAboveAssets(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('showChartAboveAssets', value);
+  }
+
+  static Future<bool> loadShowChartAboveAssets() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('showChartAboveAssets') ?? true; // Default to true
+  }
 }

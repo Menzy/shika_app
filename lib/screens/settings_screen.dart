@@ -19,6 +19,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF000D0C),
       body: TTopSectionContainer(
+        isHeaderOnTop: true, // Fix back button clickability
         customHeader: Row(
           children: [
             GestureDetector(
@@ -116,6 +117,33 @@ class SettingsScreen extends StatelessWidget {
                     label: 'Set Default Currency',
                     color: Colors.white,
                     onTap: () => _showCurrencyPicker(context),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Layout Preference Toggle
+              Consumer<UserInputProvider>(
+                builder: (context, provider, _) {
+                  return SwitchListTile(
+                    title: const Text(
+                      'Show Chart Above Assets',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    value: provider.showChartAboveAssets,
+                    onChanged: (value) {
+                      provider.toggleChartPosition(value);
+                    },
+                    activeColor: const Color(0xFFD8FE00),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Color(0xFF00514F)),
+                    ),
                   );
                 },
               ),

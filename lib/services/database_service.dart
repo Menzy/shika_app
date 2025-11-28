@@ -136,4 +136,25 @@ class DatabaseService {
     }
     return null;
   }
+
+  // --- Layout Preference ---
+
+  Future<void> saveShowChartAboveAssets(bool value) async {
+    if (uid == null) return;
+    await dataDocument.set({
+      'showChartAboveAssets': value,
+    }, SetOptions(merge: true));
+  }
+
+  Future<bool?> loadShowChartAboveAssets() async {
+    if (uid == null) return null;
+    final doc = await dataDocument.get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data() as Map<String, dynamic>;
+      if (data.containsKey('showChartAboveAssets')) {
+        return data['showChartAboveAssets'] as bool;
+      }
+    }
+    return null;
+  }
 }
