@@ -62,8 +62,11 @@ class TTopSectionContainer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TopSectionTitle(
-                      title: title, // Title passed as a widget
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18),
+                      child: TopSectionTitle(
+                        title: title, // Title passed as a widget
+                      ),
                     ),
                     const SizedBox(height: 35), // Spacing before content
                     // Fixed content that doesn't scroll (if provided)

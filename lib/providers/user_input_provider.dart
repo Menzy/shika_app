@@ -5,6 +5,7 @@ import 'package:kukuo/models/currency_amount_model.dart';
 import 'package:kukuo/models/transaction_model.dart';
 import 'package:kukuo/services/data_storage_service.dart';
 import 'package:kukuo/services/balance_calculator_service.dart';
+import 'package:kukuo/services/database_service.dart';
 import 'dart:async';
 
 class UserInputProvider with ChangeNotifier {
@@ -20,14 +21,36 @@ class UserInputProvider with ChangeNotifier {
   final StreamController<List<CurrencyAmount>> _currencyStreamController =
       StreamController<List<CurrencyAmount>>.broadcast();
 
+  DatabaseService? _databaseService;
+
   List<CurrencyAmount> get currencies => _currencies;
   List<double> get balanceHistory => _balanceHistory;
   List<DateTime> get timeHistory => _timeHistory;
   List<CurrencyTransaction> get transactions => _transactions;
 
   UserInputProvider() {
+    // Initial load from local storage
     loadTransactions();
     loadCurrencies();
+  }
+
+  void setDatabaseService(DatabaseService? dbService) {
+    _databaseService = dbService;
+    if (_databaseService != null) {
+      // Reload data from Firestore when user logs in
+      loadTransactions();
+      loadCurrencies();
+    }
+  }
+
+  void clearData() {
+    _currencies = [];
+    _balanceHistory = [];
+    _timeHistory = [];
+    _transactions = [];
+    _legacyTransactions = [];
+    _databaseService = null;
+    notifyListeners();
   }
 
   void addTransaction(CurrencyTransaction transaction) {
@@ -59,10 +82,23 @@ class UserInputProvider with ChangeNotifier {
 
   Future<void> loadCurrencies() async {
     try {
-      final loadedCurrencies =
-          await DataStorageService.loadCurrencies<CurrencyAmount>(
-        (json) => CurrencyAmount.fromJson(json),
-      );
+      List<CurrencyAmount>? loadedCurrencies;
+
+      if (_databaseService != null) {
+        // Load from Firestore
+        final currenciesJson = await _databaseService!.loadCurrencies();
+        if (currenciesJson != null) {
+          loadedCurrencies = currenciesJson
+              .map((json) => CurrencyAmount.fromJson(json))
+              .toList();
+        }
+      } else {
+        // Load from local storage
+        loadedCurrencies =
+            await DataStorageService.loadCurrencies<CurrencyAmount>(
+          (json) => CurrencyAmount.fromJson(json),
+        );
+      }
 
       if (loadedCurrencies != null) {
         _currencies = loadedCurrencies;
@@ -70,16 +106,24 @@ class UserInputProvider with ChangeNotifier {
       }
 
       // Load balance history
-      final historyData = await DataStorageService.loadBalanceHistory();
-      if (historyData != null) {
-        _balanceHistory = historyData.balances;
-        _timeHistory = historyData.times;
+      if (_databaseService != null) {
+        final historyData = await _databaseService!.loadBalanceHistory();
+        if (historyData != null) {
+          _balanceHistory = historyData.balances;
+          _timeHistory = historyData.times;
+        }
+      } else {
+        final historyData = await DataStorageService.loadBalanceHistory();
+        if (historyData != null) {
+          _balanceHistory = historyData.balances;
+          _timeHistory = historyData.times;
+        }
       }
 
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading currencies: $e');
-      rethrow;
+      // Don't rethrow, just log
     }
   }
 
@@ -126,18 +170,37 @@ class UserInputProvider with ChangeNotifier {
   }
 
   Future<void> _saveTransactions() async {
+    // Always save to local storage for offline/backup
     await DataStorageService.saveTransactions<CurrencyTransaction>(
       _transactions,
       (transaction) => transaction.toJson(),
     );
+
+    // If logged in, save the NEWest transaction to Firestore
+    // Note: This is a simplification. Ideally we sync everything.
+    // Since we add one by one, we can just add the last one.
+    if (_databaseService != null && _transactions.isNotEmpty) {
+      await _databaseService!.saveTransaction(_transactions.last.toJson());
+    }
   }
 
   Future<void> loadTransactions() async {
     try {
-      final loadedTransactions =
-          await DataStorageService.loadTransactions<CurrencyTransaction>(
-        (json) => CurrencyTransaction.fromJson(json),
-      );
+      List<CurrencyTransaction>? loadedTransactions;
+
+      if (_databaseService != null) {
+        // Load from Firestore
+        final transactionsJson = await _databaseService!.loadTransactions();
+        loadedTransactions = transactionsJson
+            .map((json) => CurrencyTransaction.fromJson(json))
+            .toList();
+      } else {
+        // Load from local storage
+        loadedTransactions =
+            await DataStorageService.loadTransactions<CurrencyTransaction>(
+          (json) => CurrencyTransaction.fromJson(json),
+        );
+      }
 
       if (loadedTransactions != null) {
         _transactions = loadedTransactions;
@@ -154,7 +217,7 @@ class UserInputProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading transactions: $e');
-      rethrow;
+      // Don't rethrow
     }
   }
 
@@ -178,16 +241,22 @@ class UserInputProvider with ChangeNotifier {
 
   Future<void> _saveCurrencies() async {
     try {
+      // Save local
       await DataStorageService.saveCurrencies<CurrencyAmount>(
         _currencies,
         (currency) => currency.toJson(),
       );
 
+      // Save remote
+      if (_databaseService != null) {
+        await _databaseService!
+            .saveCurrencies(_currencies.map((c) => c.toJson()).toList());
+      }
+
       _currencyStreamController.add(_currencies);
       notifyListeners();
     } catch (e) {
       debugPrint('Error saving currencies: $e');
-      rethrow;
     }
   }
 
@@ -201,6 +270,11 @@ class UserInputProvider with ChangeNotifier {
 
     // Save the balance history
     DataStorageService.saveBalanceHistory(_balanceHistory, _timeHistory);
+
+    if (_databaseService != null) {
+      _databaseService!.saveBalanceHistory(_balanceHistory,
+          _timeHistory.map((e) => e.toIso8601String()).toList());
+    }
 
     notifyListeners();
   }
@@ -315,6 +389,11 @@ class UserInputProvider with ChangeNotifier {
 
     // Save updated history
     await DataStorageService.saveBalanceHistory(_balanceHistory, _timeHistory);
+
+    if (_databaseService != null) {
+      await _databaseService!.saveBalanceHistory(_balanceHistory,
+          _timeHistory.map((e) => e.toIso8601String()).toList());
+    }
 
     notifyListeners();
   }

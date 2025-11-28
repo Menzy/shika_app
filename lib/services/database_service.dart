@@ -26,5 +26,76 @@ class DatabaseService {
     await usersCollection.doc(uid).delete();
   }
 
-  // Add more methods here for other data (transactions, etc.)
+  // Subcollections
+  CollectionReference get transactionsCollection =>
+      usersCollection.doc(uid).collection('transactions');
+
+  DocumentReference get dataDocument =>
+      usersCollection.doc(uid).collection('data').doc('main');
+
+  // --- Transactions ---
+
+  Future<void> saveTransaction(Map<String, dynamic> transactionJson) async {
+    if (uid == null) return;
+    // Use timestamp as ID to ensure ordering and uniqueness
+    await transactionsCollection.add(transactionJson);
+  }
+
+  Future<List<Map<String, dynamic>>> loadTransactions() async {
+    if (uid == null) return [];
+    final snapshot = await transactionsCollection.orderBy('timestamp').get();
+    return snapshot.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
+  }
+
+  // --- Currencies ---
+
+  Future<void> saveCurrencies(List<Map<String, dynamic>> currenciesJson) async {
+    if (uid == null) return;
+    await dataDocument.set({
+      'currencies': currenciesJson,
+    }, SetOptions(merge: true));
+  }
+
+  Future<List<Map<String, dynamic>>?> loadCurrencies() async {
+    if (uid == null) return null;
+    final doc = await dataDocument.get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data() as Map<String, dynamic>;
+      if (data.containsKey('currencies')) {
+        return List<Map<String, dynamic>>.from(data['currencies']);
+      }
+    }
+    return null;
+  }
+
+  // --- Balance History ---
+
+  Future<void> saveBalanceHistory(
+      List<double> balances, List<String> times) async {
+    if (uid == null) return;
+    await dataDocument.set({
+      'balanceHistory': balances,
+      'timeHistory': times,
+    }, SetOptions(merge: true));
+  }
+
+  Future<({List<double> balances, List<DateTime> times})?>
+      loadBalanceHistory() async {
+    if (uid == null) return null;
+    final doc = await dataDocument.get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data() as Map<String, dynamic>;
+      if (data.containsKey('balanceHistory') &&
+          data.containsKey('timeHistory')) {
+        final balances = List<double>.from(data['balanceHistory']);
+        final times = (data['timeHistory'] as List)
+            .map((e) => DateTime.parse(e))
+            .toList();
+        return (balances: balances, times: times);
+      }
+    }
+    return null;
+  }
 }

@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kukuo/screens/login_screen.dart';
 import 'package:kukuo/services/auth_service.dart';
 import 'package:kukuo/services/database_service.dart';
+import 'package:kukuo/providers/user_input_provider.dart';
+import 'package:provider/provider.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -127,6 +129,9 @@ class AuthProvider extends ChangeNotifier {
       await _authService.signOut();
 
       if (context.mounted) {
+        // Clear local user data
+        Provider.of<UserInputProvider>(context, listen: false).clearData();
+
         // Navigate to login screen and remove all previous routes
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -140,17 +145,21 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<String?> deleteAccount(BuildContext context) async {
+    final user = _user;
+    if (user == null) return 'No user logged in';
+
     try {
       _isLoading = true;
       notifyListeners();
 
       // Delete user data from Firestore
-      if (_user != null) {
-        await _databaseService.deleteUserData(_user!.uid);
-      }
+      await _databaseService.deleteUserData(user.uid);
 
       // Delete user from Firebase Auth
-      await _user?.delete();
+      await user.delete();
+
+      // Ensure complete sign out (clears Google Sign In, etc.)
+      await _authService.signOut();
 
       if (context.mounted) {
         // Navigate to login screen and remove all previous routes
@@ -159,10 +168,19 @@ class AuthProvider extends ChangeNotifier {
           (route) => false,
         );
       }
+
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'requires-recent-login') {
-        return 'Please log out and log in again to delete your account.';
+        // Force logout so user can log in again to delete account
+        await _authService.signOut();
+        if (context.mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
+        }
+        return 'Security requirement: Please log in again to confirm account deletion.';
       }
       return e.message;
     } catch (e) {

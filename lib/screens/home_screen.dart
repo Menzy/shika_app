@@ -11,6 +11,7 @@ import 'package:kukuo/widgets/added_list.dart';
 import 'package:kukuo/widgets/balance_chart.dart';
 import 'package:kukuo/services/currency_preference_service.dart';
 import 'package:kukuo/models/currency_model.dart';
+import 'package:kukuo/services/database_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onSeeAllPressed;
@@ -40,6 +41,16 @@ class _HomeScreenState extends State<HomeScreen> {
         Provider.of<ExchangeRateProvider>(context, listen: false);
     final userInputProvider =
         Provider.of<UserInputProvider>(context, listen: false);
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // Initialize DatabaseService with current user
+    if (authProvider.user != null) {
+      final databaseService = DatabaseService(uid: authProvider.user!.uid);
+      userInputProvider.setDatabaseService(databaseService);
+    } else {
+      userInputProvider.setDatabaseService(null);
+    }
 
     exchangeRateProvider.setUserInputProvider(userInputProvider);
     userInputProvider.setExchangeRateProvider(exchangeRateProvider);

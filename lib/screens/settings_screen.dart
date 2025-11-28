@@ -149,7 +149,7 @@ class SettingsScreen extends StatelessWidget {
       BuildContext context, AuthProvider authProvider) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF00312F),
         title: const Text(
           'Delete Account',
@@ -161,13 +161,13 @@ class SettingsScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child:
                 const Text('Cancel', style: TextStyle(color: Colors.white70)),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // Close dialog
+              Navigator.pop(dialogContext); // Close dialog
               final error = await authProvider.deleteAccount(context);
               if (error != null && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
