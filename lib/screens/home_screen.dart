@@ -8,7 +8,7 @@ import 'package:kukuo/providers/user_input_provider.dart';
 
 import 'package:kukuo/widgets/total_balance.dart';
 import 'package:kukuo/widgets/added_list.dart';
-import 'package:kukuo/widgets/settings_bottom_sheet.dart';
+import 'package:kukuo/widgets/settings_sheet.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kukuo/widgets/balance_chart.dart';
 import 'package:kukuo/models/currency_model.dart';
@@ -107,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   context: context,
                   backgroundColor: Colors.transparent,
                   isScrollControlled: true,
-                  builder: (context) => const SettingsBottomSheet(),
+                  builder: (context) => const SettingsSheet(),
                 );
               },
               child: Container(
