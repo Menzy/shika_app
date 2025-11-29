@@ -64,7 +64,7 @@ class UserInputProvider with ChangeNotifier {
     _legacyTransactions = [];
     _databaseService = null;
     _databaseService = null;
-    _selectedCurrency = 'USD'; // Reset to default on logout
+    _selectedCurrency = 'GHS'; // Reset to default on logout
     notifyListeners();
   }
 
@@ -141,8 +141,15 @@ class UserInputProvider with ChangeNotifier {
       }
 
       if (loadedCurrencies != null) {
-        _currencies = loadedCurrencies;
-        _currencyStreamController.add(_currencies);
+        // Only overwrite if we don't have transactions yet, or if we want to trust cache initially
+        // But if we have transactions, they are the source of truth.
+        // To be safe, let's only set if _currencies is empty or we haven't loaded transactions yet.
+        // Actually, loadTransactions calls _updateCurrencyTotalsFromTransactions which sets _currencies.
+        // So if loadTransactions finishes first, we shouldn't overwrite.
+        if (_transactions.isEmpty) {
+          _currencies = loadedCurrencies;
+          _currencyStreamController.add(_currencies);
+        }
       }
 
       // Load balance history
@@ -155,6 +162,11 @@ class UserInputProvider with ChangeNotifier {
           if (invested != null) {
             _investedHistory = invested;
           }
+        } else {
+          // New user or no data on server, clear local history to avoid leakage
+          _balanceHistory = [];
+          _timeHistory = [];
+          _investedHistory = [];
         }
       } else {
         final historyData = await DataStorageService.loadBalanceHistory();
@@ -179,13 +191,16 @@ class UserInputProvider with ChangeNotifier {
       final savedCurrency = await _databaseService!.loadSelectedCurrency();
       if (savedCurrency != null) {
         _selectedCurrency = savedCurrency;
+        // Sync to local storage so it's available offline next time
+        await CurrencyPreferenceService.saveSelectedCurrency(savedCurrency);
       } else {
-        // If no remote currency, try local but prioritize default if fresh login
-        // Actually, let's stick to local if remote is missing, or default
-        _selectedCurrency =
-            await CurrencyPreferenceService.loadSelectedCurrency();
+        // New user or no remote data: Default to GHS (or system default)
+        // CRITICAL: Do NOT load from local storage here, as it might contain
+        // the previous user's preference.
+        _selectedCurrency = 'GHS';
       }
     } else {
+      // Offline/Guest: Load from local storage
       _selectedCurrency =
           await CurrencyPreferenceService.loadSelectedCurrency();
     }
@@ -356,6 +371,34 @@ class UserInputProvider with ChangeNotifier {
       _currencies[index] = currency;
       await _saveCurrencies();
       updateTotalBalance(exchangeRates, localCurrencyCode);
+    }
+  }
+
+  Future<void> deleteTransaction(CurrencyTransaction transaction,
+      Map<String, double> exchangeRates, String localCurrencyCode) async {
+    try {
+      // Remove from local list
+      _transactions.removeWhere((t) => t.id == transaction.id);
+      _sortTransactions();
+      _updateLegacyTransactions();
+      await _saveTransactions();
+
+      // Delete from Firestore if logged in
+      if (_databaseService != null && transaction.id != null) {
+        await _databaseService!.deleteTransaction(transaction.id!);
+      }
+
+      // Update currency totals
+      _updateCurrencyTotalsFromTransactions();
+
+      // Recalculate history
+      await recalculateHistory(exchangeRates, localCurrencyCode);
+
+      // Notify listeners
+      _transactionStreamController.add(_transactions);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting transaction: $e');
     }
   }
 
@@ -589,6 +632,8 @@ class UserInputProvider with ChangeNotifier {
   }
 
   void _updateCurrencyTotalsFromTransactions() {
+    debugPrint(
+        'Updating currency totals from ${_transactions.length} transactions');
     // Create a map to store currency totals
     final Map<String, CurrencyAmount> currencyTotals = {};
 
@@ -630,6 +675,8 @@ class UserInputProvider with ChangeNotifier {
 
     // Update _currencies with the calculated totals
     _currencies = currencyTotals.values.where((c) => c.amount > 0).toList();
+    debugPrint(
+        'Calculated ${_currencies.length} currencies: ${_currencies.map((c) => '${c.code}: ${c.amount}').join(', ')}');
 
     // Notify the currency stream controller
     _currencyStreamController.add(_currencies);

@@ -41,6 +41,7 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
   CurrencyTransaction? _editingTransaction;
   bool _showDatePicker = true;
   bool _isEditingBalance = false;
+  bool _isSubmitting = false;
   double _originalBalance = 0.0;
 
   @override
@@ -93,6 +94,7 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
     setState(() {
       _editingTransaction = transaction;
       _showDatePicker = true; // Always show date picker for edits
+      _isEditingBalance = false; // Ensure we are not in "Edit Balance" mode
       _initializeFields();
     });
   }
@@ -191,16 +193,83 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
         },
         child: Scaffold(
           body: TTopSectionContainer(
-            title: Text(
-              _isEditingBalance
-                  ? 'Edit Balance'
-                  : (_editingTransaction != null ? 'Edit Coins' : 'Add Coins'),
-              style: const TextStyle(
-                fontFamily: 'Gazpacho',
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFD8FE00),
-              ),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _isEditingBalance
+                      ? 'Edit Balance'
+                      : (_editingTransaction != null
+                          ? 'Edit Coins'
+                          : 'Add Coins'),
+                  style: const TextStyle(
+                    fontFamily: 'Gazpacho',
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFD8FE00),
+                  ),
+                ),
+                if (_editingTransaction != null && !_isEditingBalance)
+                  GestureDetector(
+                    onTap: () async {
+                      final userInputProvider = Provider.of<UserInputProvider>(
+                          context,
+                          listen: false);
+                      final exchangeRateProvider =
+                          Provider.of<ExchangeRateProvider>(context,
+                              listen: false);
+
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: const Color(0xFF00312F),
+                          title: const Text('Delete Transaction?',
+                              style: TextStyle(color: Colors.white)),
+                          content: const Text(
+                              'Are you sure you want to delete this transaction?',
+                              style: TextStyle(color: Colors.white70)),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel',
+                                  style: TextStyle(color: Colors.white)),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Delete',
+                                  style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true && mounted) {
+                        final localCurrencyCode =
+                            await CurrencyPreferenceService
+                                .loadSelectedCurrency();
+
+                        await userInputProvider.deleteTransaction(
+                          _editingTransaction!,
+                          exchangeRateProvider.exchangeRates,
+                          localCurrencyCode,
+                        );
+
+                        if (mounted) {
+                          _resetFields();
+                          widget.onSubmitSuccess();
+                        }
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             child: Container(
               padding: const EdgeInsets.all(10),
@@ -369,6 +438,8 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
   }
 
   bool submitInput() {
+    if (_isSubmitting) return false;
+
     // Clear any previous snackbars
     ScaffoldMessenger.of(context).clearSnackBars();
 
@@ -379,6 +450,7 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
       if (amount != null && amount != 0) {
         setState(() {
           _hasError = false;
+          _isSubmitting = true;
         });
         final isSubtraction = amount < 0;
 
@@ -396,6 +468,9 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
           if (amount.abs() > widget.initialCurrency!.amount) {
             _showErrorSnackbar(
                 'Cannot subtract more than the available balance');
+            setState(() {
+              _isSubmitting = false;
+            });
             return false;
           }
         }
@@ -412,6 +487,9 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
             // No change
             _resetFields();
             widget.onSubmitSuccess();
+            setState(() {
+              _isSubmitting = false;
+            });
             return true;
           }
 
@@ -436,8 +514,15 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
 
         // Use the saved local currency instead of hardcoded USD
         _addCurrencyWithSavedPreference(userInputProvider, exchangeRateProvider,
-            updatedCurrency, finalIsSubtraction,
-            amountToAdd: finalAmountToAdd);
+                updatedCurrency, finalIsSubtraction,
+                amountToAdd: finalAmountToAdd)
+            .whenComplete(() {
+          if (mounted) {
+            setState(() {
+              _isSubmitting = false;
+            });
+          }
+        });
         return true;
       } else {
         setState(() {
@@ -488,17 +573,7 @@ class AddCoinsScreenState extends State<AddCoinsScreen>
         );
       } else {
         // Add new transaction
-        await userInputProvider.addCurrency(
-          updatedCurrency,
-          exchangeRateProvider.exchangeRates,
-          localCurrencyCode,
-          isSubtraction: isSubtraction,
-          date: _selectedDate,
-          // If editing balance, we add the difference, not the total
-          // But addCurrency expects the CurrencyAmount object which usually holds the total?
-          // Wait, addCurrency uses currency.amount as the transaction amount!
-          // So we need to pass a CurrencyAmount with the difference.
-        );
+
         // Correcting the call above:
         // We need to pass a CurrencyAmount that represents the TRANSACTION amount, not the new total.
         // The updatedCurrency constructed in submitInput has the NEW TOTAL if initialCurrency was present.

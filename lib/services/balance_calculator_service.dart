@@ -11,6 +11,11 @@ class BalanceCalculatorService {
     for (final currency in currencies) {
       final code = getCode(currency);
       final amount = getAmount(currency);
+      if (code == localCurrencyCode) {
+        total += amount;
+        continue;
+      }
+
       final rate = exchangeRates[code];
 
       if (rate != null) {

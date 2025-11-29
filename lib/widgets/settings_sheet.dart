@@ -64,12 +64,12 @@ class _SettingsSheetState extends State<SettingsSheet> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF00514F).withOpacity(0.5),
+                        color: const Color(0xFF00514F).withValues(alpha: 0.5),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.close,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.2),
                         size: 20,
                       ),
                     ),
@@ -328,7 +328,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
                   onChanged: (value) {
                     provider.toggleChartPosition(value);
                   },
-                  activeColor: const Color(0xFFD8FE00),
+                  activeTrackColor: const Color(0xFFD8FE00),
                   contentPadding: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -347,12 +347,12 @@ class _SettingsSheetState extends State<SettingsSheet> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00514F).withOpacity(0.5),
+                    color: const Color(0xFF00514F).withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.arrow_back,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     size: 20,
                   ),
                 ),
@@ -459,12 +459,12 @@ class _SettingsSheetState extends State<SettingsSheet> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00514F).withOpacity(0.5),
+                    color: const Color(0xFF00514F).withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.arrow_back,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     size: 20,
                   ),
                 ),

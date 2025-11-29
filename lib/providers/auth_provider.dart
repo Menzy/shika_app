@@ -136,7 +136,7 @@ class AuthProvider extends ChangeNotifier {
         Provider.of<UserInputProvider>(context, listen: false).clearData();
 
         // Navigate to login screen and remove all previous routes
-        Navigator.of(context).pushAndRemoveUntil(
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
         );
@@ -155,6 +155,11 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      // Clear local user data immediately to stop any listeners/loaders
+      if (context.mounted) {
+        Provider.of<UserInputProvider>(context, listen: false).clearData();
+      }
+
       // Delete user data from Firestore
       if (_databaseService != null) {
         await _databaseService!.deleteUserData(user.uid);
@@ -168,7 +173,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (context.mounted) {
         // Navigate to login screen and remove all previous routes
-        Navigator.of(context).pushAndRemoveUntil(
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
         );
@@ -180,7 +185,7 @@ class AuthProvider extends ChangeNotifier {
         // Force logout so user can log in again to delete account
         await _authService.signOut();
         if (context.mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
+          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const LoginScreen()),
             (route) => false,
           );
